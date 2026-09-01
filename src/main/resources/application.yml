@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: striim-splunk-connector
+  datasource:
+    url: jdbc:postgresql://localhost:5432/striim_connector
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  security:
+    jwt:
+      secret: ${JWT_SECRET:your-secret-key-change-in-production}
+      expiration: 86400000
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.striim: DEBUG
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] [%thread] %-5level %logger{36} - %msg%n"
+
+striim:
+  metrics:
+    collection-interval-seconds: 60
+    timeout-seconds: 15
