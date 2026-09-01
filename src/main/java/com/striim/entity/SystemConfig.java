@@ -20,8 +20,11 @@ public class SystemConfig {
     @Column(length = 255, nullable = false)
     private String striimUrl;
 
-    @Column(name = "striim_token_enc", columnDefinition = "TEXT", nullable = false)
-    private String striimTokenEnc;
+    @Column(name = "striim_user", length = 100, nullable = false)
+    private String striimUser;
+
+    @Column(name = "striim_password_enc", columnDefinition = "TEXT", nullable = false)
+    private String striimPasswordEnc;
 
     @Column(length = 255, nullable = false)
     private String splunkHecUrl;

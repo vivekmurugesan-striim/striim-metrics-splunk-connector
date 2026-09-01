@@ -53,7 +53,8 @@ public class MetricsCollectionService {
                     .orElseThrow(() -> new IllegalStateException("Configuration not found"));
 
             String striimUrl = config.getStriimUrl();
-            String striimToken = EncryptionUtil.decrypt(config.getStriimTokenEnc());
+            String striimUser = config.getStriimUser();
+            String striimPassword = EncryptionUtil.decrypt(config.getStriimPasswordEnc());
             String splunkHecUrl = config.getSplunkHecUrl();
             String splunkToken = EncryptionUtil.decrypt(config.getSplunkTokenEnc());
             String splunkIndex = config.getSplunkIndex();
@@ -63,7 +64,7 @@ public class MetricsCollectionService {
 
             for (String command : commands) {
                 log.info("Executing command: {}", command);
-                Map<String, Object> metrics = striimApiClient.callStriimApi(striimUrl, striimToken, command);
+                Map<String, Object> metrics = striimApiClient.callStriimApi(striimUrl, striimUser, striimPassword, command);
                 allMetrics.putAll(metrics);
                 metricsCount++;
             }

@@ -22,7 +22,8 @@ public class ConfigService {
             SystemConfig config = new SystemConfig();
             config.setId("default");
             config.setStriimUrl(request.getStriimUrl());
-            config.setStriimTokenEnc(EncryptionUtil.encrypt(request.getStriimToken()));
+            config.setStriimUser(request.getStriimUser());
+            config.setStriimPasswordEnc(EncryptionUtil.encrypt(request.getStriimPassword()));
             config.setSplunkHecUrl(request.getSplunkHecUrl());
             config.setSplunkTokenEnc(EncryptionUtil.encrypt(request.getSplunkToken()));
             config.setSplunkIndex(request.getSplunkIndex());

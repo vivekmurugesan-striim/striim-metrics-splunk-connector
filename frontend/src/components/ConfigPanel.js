@@ -4,7 +4,8 @@ import { configApi } from '../api/apiClient';
 function ConfigPanel() {
   const [formData, setFormData] = useState({
     striimUrl: '',
-    striimToken: '',
+    striimUser: '',
+    striimPassword: '',
     splunkHecUrl: '',
     splunkToken: '',
     splunkIndex: 'striim_metrics',
@@ -75,13 +76,26 @@ function ConfigPanel() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Striim API Token</label>
+              <label className="form-label">Striim Username</label>
+              <input
+                type="text"
+                className="form-input"
+                name="striimUser"
+                placeholder="e.g., admin"
+                value={formData.striimUser}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Striim Password</label>
               <input
                 type="password"
                 className="form-input"
-                name="striimToken"
-                placeholder="Your Striim API token"
-                value={formData.striimToken}
+                name="striimPassword"
+                placeholder="Your Striim password"
+                value={formData.striimPassword}
                 onChange={handleChange}
                 required
               />

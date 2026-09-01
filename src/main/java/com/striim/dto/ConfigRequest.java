@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ConfigRequest {
     private String striimUrl;
-    private String striimToken;
+    private String striimUser;
+    private String striimPassword;
     private String splunkHecUrl;
     private String splunkToken;
     private String splunkIndex;

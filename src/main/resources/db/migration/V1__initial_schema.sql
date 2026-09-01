@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS system_config (
     id VARCHAR(50) PRIMARY KEY,
     striim_url VARCHAR(255) NOT NULL,
-    striim_token_enc TEXT NOT NULL,
+    striim_user VARCHAR(100) NOT NULL,
+    striim_password_enc TEXT NOT NULL,
     splunk_hec_url VARCHAR(255) NOT NULL,
     splunk_token_enc TEXT NOT NULL,
     splunk_index VARCHAR(100) NOT NULL,
