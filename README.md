@@ -85,6 +85,7 @@ docker-compose up -d
    - Enter your Splunk HEC URL and token
    - Set the target Splunk index and collection interval
    - Click "Save Configuration"
+   - See [SPLUNK_SETUP.md](SPLUNK_SETUP.md) for detailed Splunk configuration instructions
 
 ### Local Development
 
@@ -335,9 +336,19 @@ Metrics are published to Splunk in the following JSON format:
 4. **Token Caching**: Tokens are cached for 30 minutes to reduce authentication overhead
 5. **Splunk Batch Size**: Modify publishing logic in `SplunkHecClient` for bulk operations
 
+## Documentation
+
+- [README.md](README.md) - Project overview and quick start
+- [SPLUNK_SETUP.md](SPLUNK_SETUP.md) - **Detailed Splunk configuration guide** (HEC setup, index creation, token generation)
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Developer setup and contribution guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment procedures
+- [METRICS.md](METRICS.md) - Detailed metrics specifications and Splunk queries
+
 ## Support and Contributing
 
 For issues, feature requests, or contributions, please refer to the project documentation or contact the development team.
+
+**For Splunk-related questions**: See [SPLUNK_SETUP.md](SPLUNK_SETUP.md) for comprehensive setup and troubleshooting guides.
 
 ## License
 
