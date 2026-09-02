@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -24,6 +25,7 @@ public class SplunkHecClient {
 
             httpPost.setHeader("Authorization", "Splunk " + token);
             httpPost.setHeader("Content-Type", "application/json");
+            httpPost.setHeader("X-Splunk-Request-Channel", UUID.randomUUID().toString());
 
             Map<String, Object> event = new HashMap<>();
             event.put("event", metrics);
