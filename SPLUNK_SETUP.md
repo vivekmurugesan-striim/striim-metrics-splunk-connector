@@ -71,7 +71,7 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
    | Setting | Recommended Value | Notes |
    |---------|-------------------|-------|
    | **All Tokens** | `Enabled` | Allow token-based authentication |
-   | **Default Source Type** | `striim:metrics` | Category for HEC data |
+   | **Default Source Type** | `Metrics` | Use Metrics category (see steps below) |
    | **Default Index** | `striim_metrics` | Target index for metrics |
    | **Default Output Group** | `None` | Use if you have output groups configured |
    | **Use Deployment Server** | `Unchecked` | Unless using deployment server |
@@ -80,12 +80,34 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
 
    ![Global Settings Dialog](https://user-images.githubusercontent.com/placeholder/splunk-hec-global-settings.png)
 
-3. After selecting "Enable SSL":
+3. **Setting Default Source Type**:
+   - Click on **"Select Source Type"** dropdown
+   - A list of source type categories will appear:
+     - Application
+     - Database
+     - Email
+     - **Metrics** ← **Select this**
+     - Log to Metrics
+     - Miscellaneous
+     - Network & Security
+     - Operating System
+     - Structured
+     - Uncategorized
+     - Web
+   - Select **"Metrics"** as the default source type category
+   - You can optionally filter using the search box to find "Metrics" quickly
+
+4. **Setting Default Index**:
+   - Click on the **Default Index** dropdown
+   - Select or type `striim_metrics`
+   - This ensures all events default to this index if not specified in token
+
+5. After enabling **"Enable SSL"**:
    - Select your **SSL Certificate** from the dropdown
    - Ensure the certificate is valid and matches your HEC hostname
    - For self-signed certificates in testing, use `https://` with `-k` flag in curl
 
-4. Click **Save** to apply global settings
+6. Click **Save** to apply global settings
 
 ### 2.3 Verify Global Settings Applied
 
@@ -103,6 +125,24 @@ SSL: 1 (enabled)
 port: 8088
 ```
 
+## Clarification: Source Type vs Sourcetype
+
+Before creating tokens, understand the difference:
+
+| Setting | Purpose | Level | Example |
+|---------|---------|-------|---------|
+| **Global Settings "Source Type"** | Category for organizing HEC data | Global | "Metrics", "Log to Metrics", "Database" |
+| **Token "Sourcetype"** | Custom identifier for specific data sources | Per-Token | "striim:metrics", "striim:system" |
+
+- **Global Source Type** = How Splunk categorizes the data type (metrics vs logs)
+- **Token Sourcetype** = Custom label to identify where data comes from (useful for searches)
+
+For Striim metrics:
+- Global Setting: Select **"Metrics"** category
+- Token Sourcetype: Use **"striim:metrics"** custom value
+
+This allows searches like: `index=striim_metrics sourcetype=striim:metrics`
+
 ## Step 3: Create HEC Token
 
 ### 3.1 Create New Token
@@ -114,9 +154,15 @@ port: 8088
    |-------|-------|-------------|
    | **Name** | `striim-connector` | Descriptive name for the token |
    | **Description** | `Token for Striim metrics collection` | Optional description |
-   | **Source name override** | `striim` | Identifies the source |
-   | **Sourcetype** | `striim:metrics` | Categorizes the data |
+   | **Source name override** | `striim` | Identifies the source of events |
+   | **Sourcetype** | `striim:metrics` | Custom sourcetype for Striim metrics |
    | **Default Index** | `striim_metrics` | Target index created earlier |
+
+   **Notes:**
+   - The **Sourcetype** field allows custom sourcetype creation (e.g., `striim:metrics`)
+   - This is different from the Global Settings "Source Type" which is a category
+   - Sourcetype helps identify and search for metrics from this specific source
+   - The Global Settings "Metrics" category ensures proper handling of metrics data
 
 3. Click **Next** to proceed to allowed indexes
 
