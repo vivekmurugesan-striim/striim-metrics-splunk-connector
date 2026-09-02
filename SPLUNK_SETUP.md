@@ -405,6 +405,77 @@ index=_internal group=queue name=httpeventcollector
 | stats avg(current_size_kb) as avg_queue_size, max(current_size_kb) as max_queue_size
 ```
 
+## Docker-Specific Configuration
+
+If you're running Splunk in Docker, follow these additional steps:
+
+### Networking Configuration
+
+**Scenario 1: Striim Connector runs on host machine**
+
+```bash
+# Use localhost to connect to Docker Splunk
+SPLUNK_HEC_URL=http://localhost:8088/services/collector
+```
+
+**Scenario 2: Both Splunk and Striim Connector run in Docker**
+
+Check if they're on the same network:
+```bash
+# List Docker networks
+docker network ls
+
+# Inspect Splunk container's network
+docker inspect splunk | grep -A 10 "Networks"
+
+# If on same network, use container name
+SPLUNK_HEC_URL=http://splunk:8088/services/collector
+```
+
+**Scenario 3: Get container IP address**
+
+```bash
+# Get Splunk container IP
+SPLUNK_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' splunk)
+
+# Use the IP
+SPLUNK_HEC_URL=http://$SPLUNK_IP:8088/services/collector
+```
+
+### Port Mapping Verification
+
+Check your `docker ps` output:
+
+```
+PORTS                                    DESCRIPTION
+0.0.0.0:8000->8000/tcp                  ✓ Port 8000 exposed to host (accessible at localhost:8000)
+8088-8089/tcp                            ✗ Port 8088 NOT exposed to host
+```
+
+If you need to access HEC from host machine, publish the port:
+
+```bash
+# Stop current container
+docker stop splunk
+
+# Remove container
+docker rm splunk
+
+# Start with port mapping
+docker run -d \
+  --name splunk \
+  -p 8000:8000 \
+  -p 8088:8088 \
+  -e SPLUNK_PASSWORD=YourPassword \
+  -e SPLUNK_START_ARGS='--accept-license' \
+  splunk/splunk:latest
+
+# Now accessible from host machine
+SPLUNK_HEC_URL=http://localhost:8088/services/collector
+```
+
+---
+
 ## Quick Start: Testing Without SSL Certificate
 
 If you don't have an SSL certificate, follow these steps to test with HTTP:
@@ -486,18 +557,65 @@ curl -k -u admin:password \
    ```
 3. Ensure token is assigned to this index
 
-### Issue: Connection Timeout
+### Issue: Connection Timeout or "Could Not Connect to Server"
 
-**Symptoms**: Connection refused or timeout
+**Symptoms**: 
+- `curl: (7) Failed to connect to 0.0.0.0 port 8088`
+- Connection refused
+- Could not connect to server
 
 **Solutions**:
-1. Verify HEC URL is correct and accessible:
+
+1. **Verify Splunk is running and accessible**:
    ```bash
-   curl -I https://splunk.company.com:8088
+   # Check Splunk web UI
+   curl http://localhost:8000
+   
+   # Check HEC endpoint
+   curl http://localhost:8088
    ```
-2. Check firewall rules allow port 8088
-3. Confirm Splunk is running and HEC is enabled
-4. Check SSL certificate validity if using HTTPS
+
+2. **Correct the HEC URL** (0.0.0.0 is not valid):
+   - `0.0.0.0` is not a routable address
+   - Use `localhost` or `127.0.0.1` for local access
+   - Use container name or IP if in Docker
+
+3. **If Splunk runs in Docker**:
+   
+   **Option A: Connector on local machine (not Docker)**
+   ```bash
+   SPLUNK_HEC_URL=http://localhost:8088/services/collector
+   ```
+   
+   **Option B: Connector and Splunk both in Docker**
+   ```bash
+   # Use container name if on same Docker network
+   SPLUNK_HEC_URL=http://splunk:8088/services/collector
+   
+   # Or get container IP
+   docker inspect splunk | grep IPAddress
+   SPLUNK_HEC_URL=http://172.17.0.2:8088/services/collector
+   ```
+
+4. **Verify port mapping**:
+   ```bash
+   docker ps | grep splunk
+   # Look for: 0.0.0.0:8000->8000/tcp means it's accessible on localhost:8000
+   # 8088-8089/tcp means port 8088 is open for container communication
+   ```
+
+5. **Check firewall rules**:
+   ```bash
+   # macOS/Linux firewall
+   sudo ufw status
+   sudo ufw allow 8088/tcp
+   ```
+
+6. **Verify HEC is enabled**:
+   - Access Splunk UI: http://localhost:8000
+   - Go to **Settings** → **Data Inputs** → **HTTP Event Collector**
+   - Status should show "Enabled"
+   - If disabled, click "Enable"
 
 ### Issue: Events Not Appearing in Splunk
 
