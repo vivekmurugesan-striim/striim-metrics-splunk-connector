@@ -33,17 +33,14 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
    | Field | Value | Description |
    |-------|-------|-------------|
    | **Index Name** | `striim_metrics` | Name for storing Striim metrics |
-   | **Data Type** | `Metrics` | Select "Metrics" for time-series data |
+   | **Data Type** | `Events` | Select "Events" for JSON structured data |
    | **Max KB/s** | (optional) | Maximum data rate; leave blank for no limit |
    | **Max Global Raw Size MB** | (optional) | Maximum raw size; leave blank for unlimited |
    | **Max Memory MB** | `20` | Memory limit for index (recommend 20-50) |
    | **Enable IPv6** | Unchecked | Unless you use IPv6 |
-   | **Homogeneous Column Datatype** | Checked | Improves compression for metrics |
 
 3. Advanced settings (optional):
-   - **Summary homogeneous** - Checked (improves summary searches)
-   - **Datatype** - Select "Metrics"
-   - **Search String** - Leave blank
+   - Leave as default (Events data type is standard)
 
 4. Click **Save Index**
 
@@ -71,7 +68,7 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
    | Setting | Recommended Value | Notes |
    |---------|-------------------|-------|
    | **All Tokens** | `Enabled` | Allow token-based authentication |
-   | **Default Source Type** | `Metrics` | Use Metrics category (see steps below) |
+   | **Default Source Type** | `_json` | Use _json for JSON structured data |
    | **Default Index** | `striim_metrics` | Target index for metrics |
    | **Default Output Group** | `None` | Use if you have output groups configured |
    | **Use Deployment Server** | `Unchecked` | Unless using deployment server |
@@ -82,20 +79,9 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
 
 3. **Setting Default Source Type**:
    - Click on **"Select Source Type"** dropdown
-   - A list of source type categories will appear:
-     - Application
-     - Database
-     - Email
-     - **Metrics** ← **Select this**
-     - Log to Metrics
-     - Miscellaneous
-     - Network & Security
-     - Operating System
-     - Structured
-     - Uncategorized
-     - Web
-   - Select **"Metrics"** as the default source type category
-   - You can optionally filter using the search box to find "Metrics" quickly
+   - Type or search for `_json` in the search box
+   - Select **`_json`** from the list
+   - `_json` automatically handles JSON structured data ingestion
 
 4. **Setting Default Index**:
    - Click on the **Default Index** dropdown
@@ -138,7 +124,7 @@ Run this search to confirm settings:
 Expected output with SSL enabled:
 ```
 title: striim-connector
-default_sourcetype: striim:metrics
+default_sourcetype: _json
 default_index: striim_metrics
 SSL: 1 (enabled)
 port: 8088
@@ -147,7 +133,7 @@ port: 8088
 Expected output with SSL disabled:
 ```
 title: striim-connector
-default_sourcetype: striim:metrics
+default_sourcetype: _json
 default_index: striim_metrics
 SSL: 0 (disabled)
 port: 8088
@@ -159,17 +145,17 @@ Before creating tokens, understand the difference:
 
 | Setting | Purpose | Level | Example |
 |---------|---------|-------|---------|
-| **Global Settings "Source Type"** | Category for organizing HEC data | Global | "Metrics", "Log to Metrics", "Database" |
+| **Global Settings "Source Type"** | Format parser for HEC data | Global | "_json", "_raw", "_csv" |
 | **Token "Sourcetype"** | Custom identifier for specific data sources | Per-Token | "striim:metrics", "striim:system" |
 
-- **Global Source Type** = How Splunk categorizes the data type (metrics vs logs)
+- **Global Source Type** = How Splunk parses the data format (JSON, raw text, CSV, etc.)
 - **Token Sourcetype** = Custom label to identify where data comes from (useful for searches)
 
 For Striim metrics:
-- Global Setting: Select **"Metrics"** category
-- Token Sourcetype: Use **"striim:metrics"** custom value
+- Global Setting: Select **"_json"** for JSON data format
+- Token Sourcetype: Use **"_json"** (or optionally customize to "striim:metrics")
 
-This allows searches like: `index=striim_metrics sourcetype=striim:metrics`
+This allows searches like: `index=striim_metrics sourcetype=_json`
 
 ## Step 3: Create HEC Token
 
@@ -183,14 +169,14 @@ This allows searches like: `index=striim_metrics sourcetype=striim:metrics`
    | **Name** | `striim-connector` | Descriptive name for the token |
    | **Description** | `Token for Striim metrics collection` | Optional description |
    | **Source name override** | `striim` | Identifies the source of events |
-   | **Sourcetype** | `striim:metrics` | Custom sourcetype for Striim metrics |
+   | **Sourcetype** | `_json` | Use _json for JSON structured data |
    | **Default Index** | `striim_metrics` | Target index created earlier |
 
    **Notes:**
-   - The **Sourcetype** field allows custom sourcetype creation (e.g., `striim:metrics`)
-   - This is different from the Global Settings "Source Type" which is a category
-   - Sourcetype helps identify and search for metrics from this specific source
-   - The Global Settings "Metrics" category ensures proper handling of metrics data
+   - The **Sourcetype** field should match the data format being sent (in this case `_json`)
+   - This is different from the Global Settings "Source Type" which is also set for data parsing
+   - Using `_json` enables automatic JSON parsing and field extraction
+   - The Global Settings "_json" option ensures proper handling of JSON data
 
 3. Click **Next** to proceed to allowed indexes
 
@@ -233,7 +219,7 @@ INDEX="striim_metrics"
 curl \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  -d '{"event":{"test":"message"},"sourcetype":"_json","index":"'$INDEX'","time":'$(date +%s)'}' \
   $HEC_URL
 ```
 
@@ -248,7 +234,7 @@ INDEX="striim_metrics"
 curl -k \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  -d '{"event":{"test":"message"},"sourcetype":"_json","index":"'$INDEX'","time":'$(date +%s)'}' \
   $HEC_URL
 ```
 
@@ -265,7 +251,7 @@ INDEX="striim_metrics"
 curl \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  -d '{"event":{"test":"message"},"sourcetype":"_json","index":"'$INDEX'","time":'$(date +%s)'}' \
   $HEC_URL
 ```
 
@@ -308,7 +294,7 @@ curl: (7) Failed to connect to splunk.company.com port 8088
 1. Go to **Search & Reporting**
 2. Run the search:
    ```spl
-   index=striim_metrics sourcetype=striim:metrics | tail 1
+   index=striim_metrics sourcetype=_json | tail 1
    ```
 3. You should see your test event
 
@@ -357,7 +343,7 @@ SPLUNK_INDEX=striim_metrics
 ### 6.1 Real-time Monitoring
 
 ```spl
-index=striim_metrics sourcetype=striim:metrics
+index=striim_metrics sourcetype=_json
 | stats count, latest(_time) by host
 ```
 
@@ -373,7 +359,7 @@ Create a dashboard to monitor Striim metrics:
       <title>Metrics Collection Status</title>
       <single>
         <search>
-          <query>index=striim_metrics sourcetype=striim:metrics 
+          <query>index=striim_metrics sourcetype=_json 
           | stats latest(_time) as last_collection
           | eval age=now()-last_collection
           | eval status=if(age &lt; 120, "Active", "Inactive")
@@ -386,7 +372,7 @@ Create a dashboard to monitor Striim metrics:
       <title>Events per Hour</title>
       <chart>
         <search>
-          <query>index=striim_metrics sourcetype=striim:metrics
+          <query>index=striim_metrics sourcetype=_json
           | timechart count</query>
           <earliest>-24h</earliest>
         </search>
@@ -507,14 +493,14 @@ INDEX="striim_metrics"
 curl \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  -d '{"event":{"test":"message"},"sourcetype":"_json","index":"'$INDEX'","time":'$(date +%s)'}' \
   $HEC_URL
 ```
 
 ### Step 4: Verify in Splunk
 
 ```spl
-index=striim_metrics sourcetype=striim:metrics
+index=striim_metrics sourcetype=_json
 ```
 
 ### ⚠️ Important Notes
@@ -626,7 +612,7 @@ curl -k -u admin:password \
 2. Check event timestamp is correct (within searchable time)
 3. Search with earliest time:
    ```spl
-   index=striim_metrics sourcetype=striim:metrics earliest=-1h
+   index=striim_metrics sourcetype=_json earliest=-1h
    ```
 4. Check HEC input queue:
    ```spl
@@ -849,5 +835,6 @@ index=_internal token=*striim*
 
 ---
 
-**Last Updated**: September 1, 2026  
-**Version**: 1.0
+**Last Updated**: September 2, 2026  
+**Version**: 1.1
+**Changes**: Updated to use Events data type and _json source type for JSON structured data ingestion
