@@ -19,7 +19,9 @@ export const configApi = {
 
 export const collectApi = {
   triggerCollection: (commands) =>
-    apiClient.post('/v1/collect/trigger', { targetCommands: commands }),
+    apiClient.post('/v1/collect/trigger', commands ? { targetCommands: commands } : {}),
+  getAvailableCommands: () =>
+    apiClient.get('/v1/collect/commands'),
   getExecutionStatus: (executionId) =>
     apiClient.get(`/v1/collect/status/${executionId}`),
 };

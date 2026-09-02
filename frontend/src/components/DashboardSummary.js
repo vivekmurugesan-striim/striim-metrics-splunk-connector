@@ -27,7 +27,7 @@ function DashboardSummary() {
     setMessage(null);
 
     try {
-      const response = await collectApi.triggerCollection(['mon;']);
+      const response = await collectApi.triggerCollection();
       setMessage({
         type: 'success',
         text: `Metrics collection triggered. Execution ID: ${response.data.executionId}`,

@@ -1,5 +1,6 @@
 package com.striim.controller;
 
+import com.striim.config.StriimMonCommands;
 import com.striim.dto.CollectTriggerRequest;
 import com.striim.dto.ExecutionResponse;
 import com.striim.entity.ExecutionHistory;
@@ -10,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/collect")
@@ -23,11 +26,22 @@ public class CollectController {
     @Autowired
     private ExecutionHistoryRepository historyRepository;
 
+    @GetMapping("/commands")
+    public ResponseEntity<Map<String, Object>> getAvailableCommands() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("defaultCommands", StriimMonCommands.DEFAULT_COMMANDS);
+        response.put("availableCommands", StriimMonCommands.AVAILABLE_COMMANDS_WITH_DESC);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/trigger")
-    public ResponseEntity<ExecutionResponse> triggerCollection(@RequestBody CollectTriggerRequest request) {
-        log.info("Triggering manual collection with commands: {}", request.getTargetCommands());
-        String executionId = metricsCollectionService.collectAndPublishMetrics(
-                request.getTargetCommands(), "MANUAL");
+    public ResponseEntity<ExecutionResponse> triggerCollection(@RequestBody(required = false) CollectTriggerRequest request) {
+        List<String> commands = (request != null && request.getTargetCommands() != null && !request.getTargetCommands().isEmpty())
+                ? request.getTargetCommands()
+                : StriimMonCommands.DEFAULT_COMMANDS;
+
+        log.info("Triggering manual collection with commands: {}", commands);
+        String executionId = metricsCollectionService.collectAndPublishMetrics(commands, "MANUAL");
 
         ExecutionHistory execution = historyRepository.findById(executionId).orElse(null);
         if (execution == null) {

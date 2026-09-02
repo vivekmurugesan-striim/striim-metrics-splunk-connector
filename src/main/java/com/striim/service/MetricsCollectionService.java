@@ -1,5 +1,6 @@
 package com.striim.service;
 
+import com.striim.config.StriimMonCommands;
 import com.striim.entity.ExecutionHistory;
 import com.striim.entity.SystemConfig;
 import com.striim.repository.ExecutionHistoryRepository;
@@ -36,9 +37,7 @@ public class MetricsCollectionService {
             return;
         }
 
-        // Execute mon command to list all applications and their status
-        List<String> defaultCommands = Arrays.asList("mon;");
-        collectAndPublishMetrics(defaultCommands, "SCHEDULED");
+        collectAndPublishMetrics(StriimMonCommands.DEFAULT_COMMANDS, "SCHEDULED");
     }
 
     public String collectAndPublishMetrics(List<String> commands, String triggerType) {
