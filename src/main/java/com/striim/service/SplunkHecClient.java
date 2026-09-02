@@ -29,6 +29,7 @@ public class SplunkHecClient {
             event.put("event", metrics);
             event.put("sourcetype", "_json");
             event.put("index", index);
+            event.put("source", "striim-connector");
             event.put("time", Instant.now().getEpochSecond());
 
             String payload = objectMapper.writeValueAsString(event);
