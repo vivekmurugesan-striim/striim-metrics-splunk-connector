@@ -38,12 +38,15 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         String corsOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
-        if (corsOrigins == null || corsOrigins.isEmpty()) {
-            corsOrigins = "http://localhost:3000,http://127.0.0.1:3000";
+
+        if (corsOrigins != null && !corsOrigins.isEmpty() && !"*".equals(corsOrigins)) {
+            List<String> allowedOrigins = Arrays.asList(corsOrigins.split(","));
+            configuration.setAllowedOrigins(allowedOrigins);
+        } else {
+            // Development: Allow all origins
+            configuration.setAllowedOriginPatterns("*");
         }
 
-        List<String> allowedOrigins = Arrays.asList(corsOrigins.split(","));
-        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
