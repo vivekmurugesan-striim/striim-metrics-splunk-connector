@@ -37,19 +37,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        String corsOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
-
-        if (corsOrigins != null && !corsOrigins.isEmpty() && !"*".equals(corsOrigins)) {
-            List<String> allowedOrigins = Arrays.asList(corsOrigins.split(","));
-            configuration.setAllowedOrigins(allowedOrigins);
-        } else {
-            // Development: Allow all origins
-            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        }
-
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Allow all origins and methods - CORS is handled by nginx reverse proxy in production
+        configuration.applyPermitDefaultValues();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.addAllowedOriginPattern("*");
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
