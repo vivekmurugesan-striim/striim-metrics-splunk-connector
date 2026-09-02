@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form version="1.1">
+  <label>Striim Application Monitor</label>
+  <description>Monitor Striim applications status and metrics collected from mon command</description>
+
+  <!-- Time Range Picker -->
+  <fieldset submitButton="true" autoRun="true">
+    <input type="time" token="time_picker">
+      <label>Time Range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+
+  <!-- Row 1: Key Metrics -->
+  <row>
+    <panel>
+      <title>Running Applications</title>
+      <single>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(runningApplications) as count
+| fields count</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="underLabel">Apps</option>
+        <option name="useThousandSeparators">1</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x65A637","0xF7BC38","0xF58F39","0xD93F3C"]</option>
+        <option name="rangeValues">[0,5,10]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Stopped Applications</title>
+      <single>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(stoppedApplications) as count
+| fields count</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="underLabel">Apps</option>
+        <option name="useThousandSeparators">1</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x65A637","0xF7BC38","0xF58F39","0xD93F3C"]</option>
+        <option name="rangeValues">[0,2,5]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Applications</title>
+      <single>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(totalApplications) as count
+| fields count</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="underLabel">Apps</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Last Collection</title>
+      <single>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(_time) as last_collection
+| convert ctime(last_collection)</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="underLabel">Time</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- Row 2: Applications Status Table -->
+  <row>
+    <panel>
+      <title>Current Applications Status</title>
+      <table>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| spath applications{}
+| stats latest(applications{}.name) as app_name, latest(applications{}.status) as app_status by applications{}.name
+| rename applications{}.name as name, app_name as "Application Name", app_status as "Status"
+| fields "Application Name", Status
+| sort - "Status"</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">20</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"RUNNING": #65A637, "STOPPED": #D93F3C}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Row 3: Timeline Charts -->
+  <row>
+    <panel>
+      <title>Application Status Over Time (Last 24 Hours)</title>
+      <chart>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(runningApplications) as "Running", latest(stoppedApplications) as "Stopped" by _time
+| timechart avg(Running) as "Running Apps", avg(Stopped) as "Stopped Apps"</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Count</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Metrics Collections Over Time</title>
+      <chart>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats count by _time
+| timechart count(eval(count)) as "Total Collections"</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Collections</option>
+        <option name="charting.legend.placement">none</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- Row 4: Detailed Logs -->
+  <row>
+    <panel>
+      <title>Recent Metrics Events (Raw Data)</title>
+      <table>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| fields _time, source, sourcetype, totalApplications, runningApplications, stoppedApplications
+| sort - _time
+| head 10</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Row 5: Application Distribution Pie Chart -->
+  <row>
+    <panel>
+      <title>Application Status Distribution</title>
+      <chart>
+        <search>
+          <query>index=striim_metrics sourcetype=_json $time_picker$
+| stats latest(runningApplications) as running, latest(stoppedApplications) as stopped
+| eval "Running"=running, "Stopped"=stopped
+| fields Running, Stopped
+| transpose
+| rename "column" as status, "row 1" as count
+| stats sum(count) as total by status</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceLabels">["status","total"]</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+</form>
