@@ -27,7 +27,7 @@ public class SplunkHecClient {
 
             Map<String, Object> event = new HashMap<>();
             event.put("event", metrics);
-            event.put("sourcetype", "striim:metrics");
+            event.put("sourcetype", "_json");
             event.put("index", index);
             event.put("time", Instant.now().getEpochSecond());
 
@@ -36,7 +36,13 @@ public class SplunkHecClient {
 
             return httpClient.execute(httpPost, response -> {
                 int statusCode = response.getCode();
+                String responseBody = org.apache.hc.core5.http.io.entity.EntityUtils.toString(response.getEntity());
                 log.debug("Splunk HEC response status: {}", statusCode);
+
+                if (statusCode < 200 || statusCode >= 300) {
+                    log.error("Splunk HEC error ({}): {}", statusCode, responseBody);
+                }
+
                 return statusCode >= 200 && statusCode < 300;
             });
         } catch (Exception e) {
