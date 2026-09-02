@@ -27,7 +27,7 @@ function DashboardSummary() {
     setMessage(null);
 
     try {
-      const response = await collectApi.triggerCollection(['mon system', 'mon apps']);
+      const response = await collectApi.triggerCollection(['mon;']);
       setMessage({
         type: 'success',
         text: `Metrics collection triggered. Execution ID: ${response.data.executionId}`,
@@ -83,7 +83,7 @@ function DashboardSummary() {
       <div className="card">
         <h2 className="card-title">Manual Trigger</h2>
         <p style={{ color: '#666', marginBottom: '16px', fontSize: '14px' }}>
-          Trigger a manual collection of system and application metrics
+          Trigger a manual collection to list all Striim applications and their status
         </p>
         <button
           className="btn btn-primary"
