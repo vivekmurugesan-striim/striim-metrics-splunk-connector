@@ -63,6 +63,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       STRIIM_METRICS_COLLECTION_INTERVAL_SECONDS: ${COLLECTION_INTERVAL:-60}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       # Use local Splunk for development
       SPLUNK_HEC_URL: ${SPLUNK_HEC_URL:-http://splunk:8088/services/collector}
     ports:
