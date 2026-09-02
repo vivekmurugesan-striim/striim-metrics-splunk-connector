@@ -55,29 +55,53 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
 
 ## Step 2: Configure HTTP Event Collector (HEC)
 
-### 2.1 Enable HEC (if not already enabled)
+### 2.1 Access HTTP Event Collector Configuration
 
 1. Go to **Settings** → **Data Inputs**
-2. Click **HTTP Event Collector**
-3. If disabled, click **Enable** in the status bar
+2. Click **HTTP Event Collector** from the list
+3. The HEC configuration page will display all configured tokens
+4. Look for the **Global Settings** button at the top right of the page
+5. If HEC is disabled, you'll see an "Enable" button - click it to enable HEC globally
 
 ### 2.2 Configure HEC Global Settings
 
 1. In the HTTP Event Collector page, click **Global Settings** (top right)
-2. Configure the following:
+2. Configure the following settings:
 
    | Setting | Recommended Value | Notes |
    |---------|-------------------|-------|
-   | **Max Content Length** | `10000000` (10 MB) | For batch submissions |
-   | **Max Number of Tokens** | `100` | Maximum tokens allowed |
-   | **Max Sockets** | `1000` | Concurrent connections |
-   | **Per-token throughput** | `1000` MB/s | Per token limit |
-   | **Enable SSL** | Checked | Required for production |
-   | **SSL Certificate** | Select certificate | Use valid certificate |
-   | **SSL Key** | Select key file | Corresponding private key |
-   | **Require Valid Certificate** | Checked | Recommended |
+   | **All Tokens** | `Enabled` | Allow token-based authentication |
+   | **Default Source Type** | `striim:metrics` | Category for HEC data |
+   | **Default Index** | `striim_metrics` | Target index for metrics |
+   | **Default Output Group** | `None` | Use if you have output groups configured |
+   | **Use Deployment Server** | `Unchecked` | Unless using deployment server |
+   | **Enable SSL** | `Checked` ✓ | **Required for production** |
+   | **HTTP Port Number** | `8088` | Standard Splunk HEC port |
 
-3. Click **Save** to apply global settings
+   ![Global Settings Dialog](https://user-images.githubusercontent.com/placeholder/splunk-hec-global-settings.png)
+
+3. After selecting "Enable SSL":
+   - Select your **SSL Certificate** from the dropdown
+   - Ensure the certificate is valid and matches your HEC hostname
+   - For self-signed certificates in testing, use `https://` with `-k` flag in curl
+
+4. Click **Save** to apply global settings
+
+### 2.3 Verify Global Settings Applied
+
+Run this search to confirm settings:
+```spl
+| rest /services/data/inputs/http | fields title, default_sourcetype, default_index, SSL, port
+```
+
+Expected output:
+```
+title: striim-connector
+default_sourcetype: striim:metrics
+default_index: striim_metrics
+SSL: 1 (enabled)
+port: 8088
+```
 
 ## Step 3: Create HEC Token
 
@@ -123,13 +147,26 @@ The token page displays:
 
 ### 4.1 Test from Command Line
 
+**Option A: Using HTTPS (Production)**
+
 ```bash
 # Replace with your actual values
 HEC_URL="https://splunk.company.com:8088/services/collector"
 HEC_TOKEN="your-hec-token-value"
 INDEX="striim_metrics"
 
-# Send test event
+# Send test event (with valid SSL certificate)
+curl \
+  -H "Authorization: Splunk $HEC_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  $HEC_URL
+```
+
+**Option B: Using HTTPS with Self-Signed Certificate (Testing Only)**
+
+```bash
+# Add -k flag to skip SSL verification (testing only, NOT for production)
 curl -k \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
@@ -137,12 +174,41 @@ curl -k \
   $HEC_URL
 ```
 
-Expected response:
+**Option C: Using HTTP (Development Only)**
+
+```bash
+# HTTP on port 8088 (if explicitly enabled in Splunk)
+curl \
+  -H "Authorization: Splunk $HEC_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  http://splunk.company.com:8088/services/collector
+```
+
+**Expected Response:**
 ```json
 {
   "text": "Success",
   "code": 0
 }
+```
+
+**Error Responses:**
+```json
+// Invalid token
+{
+  "text": "Token disabled",
+  "code": 4
+}
+
+// Invalid index
+{
+  "text": "Invalid index",
+  "code": 10
+}
+
+// Connection refused
+curl: (7) Failed to connect to splunk.company.com port 8088
 ```
 
 ### 4.2 Verify Data in Splunk
