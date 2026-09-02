@@ -36,7 +36,7 @@ public class MetricsCollectionService {
             return;
         }
 
-        List<String> defaultCommands = Arrays.asList("mon system", "mon apps");
+        List<String> defaultCommands = Arrays.asList("SYSTEMSTATUS", "LISTAPPLICATIONS");
         collectAndPublishMetrics(defaultCommands, "SCHEDULED");
     }
 
