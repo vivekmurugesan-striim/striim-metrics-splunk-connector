@@ -36,7 +36,8 @@ public class MetricsCollectionService {
             return;
         }
 
-        List<String> defaultCommands = Arrays.asList("SYSTEMSTATUS", "LISTAPPLICATIONS");
+        // Execute mon command to list all applications and their status
+        List<String> defaultCommands = Arrays.asList("mon;");
         collectAndPublishMetrics(defaultCommands, "SCHEDULED");
     }
 
