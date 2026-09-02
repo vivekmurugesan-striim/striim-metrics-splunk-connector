@@ -8,8 +8,7 @@ COPY frontend/package.json ./
 # Try to copy package-lock.json if it exists, continue if not
 COPY frontend/package-lock.json* ./
 
-# Install dependencies (npm ci if lock file exists, npm install otherwise)
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm install
 
 COPY frontend/ .
 RUN npm run build
