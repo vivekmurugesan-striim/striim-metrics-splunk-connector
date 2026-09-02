@@ -109,19 +109,47 @@ The Striim Splunk Connector uses Splunk's HTTP Event Collector (HEC) to send met
 
 6. Click **Save** to apply global settings
 
-### 2.3 Verify Global Settings Applied
+### 2.3 SSL Configuration Options
+
+#### Option A: With SSL (Production - Recommended)
+- **Enable SSL**: ✓ Checked
+- **SSL Certificate**: Select valid certificate
+- **HEC URL**: `https://splunk.company.com:8088/services/collector`
+- **Port**: 8088
+
+#### Option B: Without SSL (Development/Testing Only - NOT for Production)
+- **Enable SSL**: ☐ Unchecked
+- **HEC URL**: `http://splunk.company.com:8088/services/collector`
+- **Port**: 8088
+
+**⚠️ WARNING**: HTTP without SSL is **NOT recommended for production**. Use only for:
+- Local development
+- Testing environments
+- Networks with existing security controls
+- Short-term testing phases
+
+### 2.4 Verify Global Settings Applied
 
 Run this search to confirm settings:
 ```spl
 | rest /services/data/inputs/http | fields title, default_sourcetype, default_index, SSL, port
 ```
 
-Expected output:
+Expected output with SSL enabled:
 ```
 title: striim-connector
 default_sourcetype: striim:metrics
 default_index: striim_metrics
 SSL: 1 (enabled)
+port: 8088
+```
+
+Expected output with SSL disabled:
+```
+title: striim-connector
+default_sourcetype: striim:metrics
+default_index: striim_metrics
+SSL: 0 (disabled)
 port: 8088
 ```
 
@@ -193,7 +221,7 @@ The token page displays:
 
 ### 4.1 Test from Command Line
 
-**Option A: Using HTTPS (Production)**
+**Option A: Using HTTPS with Valid Certificate (Production)**
 
 ```bash
 # Replace with your actual values
@@ -209,10 +237,14 @@ curl \
   $HEC_URL
 ```
 
-**Option B: Using HTTPS with Self-Signed Certificate (Testing Only)**
+**Option B: Using HTTPS with Self-Signed Certificate (Testing)**
 
 ```bash
 # Add -k flag to skip SSL verification (testing only, NOT for production)
+HEC_URL="https://splunk.company.com:8088/services/collector"
+HEC_TOKEN="your-hec-token-value"
+INDEX="striim_metrics"
+
 curl -k \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
@@ -220,16 +252,30 @@ curl -k \
   $HEC_URL
 ```
 
-**Option C: Using HTTP (Development Only)**
+**Option C: Using HTTP Without SSL (Development/Testing Only - Recommended for Testing Without Certificate)**
 
 ```bash
-# HTTP on port 8088 (if explicitly enabled in Splunk)
+# ⚠️  HTTP without SSL - NOT recommended for production
+# Make sure you disabled SSL in Global Settings first!
+
+HEC_URL="http://splunk.company.com:8088/services/collector"
+HEC_TOKEN="your-hec-token-value"
+INDEX="striim_metrics"
+
 curl \
   -H "Authorization: Splunk $HEC_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
-  http://splunk.company.com:8088/services/collector
+  $HEC_URL
 ```
+
+**Steps for HTTP Testing Without SSL:**
+
+1. In Splunk: Go to **Settings** → **Data Inputs** → **HTTP Event Collector** → **Global Settings**
+2. Uncheck **"Enable SSL"**
+3. Click **Save**
+4. Use HTTP URL: `http://splunk.company.com:8088/services/collector` (not https)
+5. Run the curl command above (Option C)
 
 **Expected Response:**
 ```json
@@ -270,11 +316,19 @@ curl: (7) Failed to connect to splunk.company.com port 8088
 
 ### 5.1 Update Environment Variables
 
-Update your `.env` file:
-
+**For HTTPS (Production):**
 ```env
-# Splunk Configuration
+# Splunk Configuration with HTTPS/SSL
 SPLUNK_HEC_URL=https://splunk.company.com:8088/services/collector
+SPLUNK_TOKEN=your-hec-token-value
+SPLUNK_INDEX=striim_metrics
+```
+
+**For HTTP Without SSL (Development/Testing):**
+```env
+# Splunk Configuration without SSL (testing only)
+# ⚠️  NOT recommended for production
+SPLUNK_HEC_URL=http://splunk.company.com:8088/services/collector
 SPLUNK_TOKEN=your-hec-token-value
 SPLUNK_INDEX=striim_metrics
 ```
@@ -285,9 +339,17 @@ SPLUNK_INDEX=striim_metrics
 2. Access the frontend at `http://localhost:3000`
 3. Navigate to **Configuration** tab
 4. Enter Splunk settings:
+
+   **For HTTPS:**
    - **Splunk HEC URL**: `https://splunk.company.com:8088/services/collector`
    - **Splunk HEC Token**: `your-hec-token-value`
    - **Splunk Index**: `striim_metrics`
+
+   **For HTTP (Testing Only):**
+   - **Splunk HEC URL**: `http://splunk.company.com:8088/services/collector`
+   - **Splunk HEC Token**: `your-hec-token-value`
+   - **Splunk Index**: `striim_metrics`
+
 5. Click **Save Configuration**
 
 ## Step 6: Monitor Metrics Flow
@@ -342,6 +404,56 @@ Monitor HEC health:
 index=_internal group=queue name=httpeventcollector
 | stats avg(current_size_kb) as avg_queue_size, max(current_size_kb) as max_queue_size
 ```
+
+## Quick Start: Testing Without SSL Certificate
+
+If you don't have an SSL certificate, follow these steps to test with HTTP:
+
+### Step 1: Disable SSL in Splunk
+
+1. Go to **Settings** → **Data Inputs** → **HTTP Event Collector**
+2. Click **Global Settings** (top right)
+3. **Uncheck** the "Enable SSL" checkbox
+4. Click **Save**
+
+### Step 2: Update Connector Configuration
+
+Use HTTP URL instead of HTTPS:
+
+```env
+SPLUNK_HEC_URL=http://splunk.company.com:8088/services/collector
+SPLUNK_TOKEN=your-hec-token-value
+SPLUNK_INDEX=striim_metrics
+```
+
+### Step 3: Test Connection
+
+```bash
+HEC_URL="http://splunk.company.com:8088/services/collector"
+HEC_TOKEN="your-token"
+INDEX="striim_metrics"
+
+curl \
+  -H "Authorization: Splunk $HEC_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"event":{"test":"message"},"sourcetype":"striim:metrics","index":"'$INDEX'","time":'$(date +%s)'}' \
+  $HEC_URL
+```
+
+### Step 4: Verify in Splunk
+
+```spl
+index=striim_metrics sourcetype=striim:metrics
+```
+
+### ⚠️ Important Notes
+
+- **Development Only**: HTTP without SSL is fine for development and testing
+- **Not for Production**: Always use HTTPS with SSL in production environments
+- **When You Get a Certificate**: Simply change the URL from `http://` to `https://` and enable SSL
+- **No Code Changes Needed**: Just update the environment variable and restart the connector
+
+---
 
 ## Troubleshooting
 
@@ -402,6 +514,38 @@ curl -k -u admin:password \
    ```spl
    index=_internal group=queue name=httpeventcollector
    | table host, name, current_size
+   ```
+
+### Issue: SSL Certificate Errors
+
+**Symptoms**: 
+- `curl: (60) SSL certificate problem`
+- `javax.net.ssl.SSLHandshakeException`
+- `unable to verify the first certificate`
+
+**Solutions**:
+
+1. **If you don't have a certificate**, disable SSL for testing:
+   ```bash
+   # In Splunk: Settings → Data Inputs → HTTP Event Collector → Global Settings
+   # Uncheck "Enable SSL"
+   # Use HTTP URL in connector:
+   SPLUNK_HEC_URL=http://splunk.company.com:8088/services/collector
+   ```
+
+2. **If using self-signed certificate**, use `-k` flag in curl:
+   ```bash
+   curl -k -H "Authorization: Splunk $HEC_TOKEN" ... $HEC_URL
+   ```
+
+3. **Verify certificate is valid**:
+   ```bash
+   openssl s_client -connect splunk.company.com:8088 -showcerts
+   ```
+
+4. **When you get a proper certificate**, switch back to HTTPS:
+   ```bash
+   SPLUNK_HEC_URL=https://splunk.company.com:8088/services/collector
    ```
 
 ### Issue: High Latency or Dropped Events
