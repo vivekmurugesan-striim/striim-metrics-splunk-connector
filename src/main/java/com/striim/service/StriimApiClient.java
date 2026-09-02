@@ -6,6 +6,10 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
@@ -51,16 +55,16 @@ public class StriimApiClient {
 
     private String authenticateWithStriim(String striimUrl, String username, String password) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            String endpoint = striimUrl.replaceFirst("/*$", "") + "/api/v2/authenticate";
+            String endpoint = striimUrl.replaceFirst("/*$", "") + "/security/authenticate";
             HttpPost httpPost = new HttpPost(endpoint);
 
-            Map<String, String> authPayload = new HashMap<>();
-            authPayload.put("username", username);
-            authPayload.put("password", password);
+            // Use form-encoded data (application/x-www-form-urlencoded)
+            java.util.List<NameValuePair> params = new java.util.ArrayList<>();
+            params.add(new BasicNameValuePair("username", username));
+            params.add(new BasicNameValuePair("password", password));
 
-            String jsonPayload = objectMapper.writeValueAsString(authPayload);
-            httpPost.setEntity(new StringEntity(jsonPayload));
-            httpPost.setHeader("Content-Type", "application/json");
+            httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
+            httpPost.setHeader("Accept", "application/json");
 
             return httpClient.execute(httpPost, response -> {
                 String responseBody = EntityUtils.toString(response.getEntity());
