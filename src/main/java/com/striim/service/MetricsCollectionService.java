@@ -68,14 +68,13 @@ public class MetricsCollectionService {
                 String response = striimApiClient.executeMonCommand(striimUrl, striimUser, striimPassword, command);
 
                 if (response != null && !response.isEmpty()) {
-                    // Parse response and add to metrics
-                    Map<String, Object> commandMetrics = new HashMap<>();
-                    commandMetrics.put("command", command);
-                    commandMetrics.put("response", response);
-                    commandMetrics.put("timestamp", System.currentTimeMillis());
-                    allMetrics.put("metric_" + metricsCount, commandMetrics);
+                    Map<String, Object> parsedMetrics = parseMonResponse(response);
+                    parsedMetrics.put("command", command);
+                    parsedMetrics.put("timestamp", System.currentTimeMillis());
+                    allMetrics.put("metric_" + metricsCount, parsedMetrics);
                     metricsCount++;
-                    log.debug("Command executed successfully, response length: {} chars", response.length());
+                    log.debug("Command executed successfully, parsed {} applications",
+                        ((List<?>) parsedMetrics.getOrDefault("applications", new ArrayList<>())).size());
                 } else {
                     log.warn("No response from command: {}", command);
                 }
@@ -99,6 +98,47 @@ public class MetricsCollectionService {
         }
 
         return executionId;
+    }
+
+    private Map<String, Object> parseMonResponse(String response) {
+        Map<String, Object> parsedData = new HashMap<>();
+        List<Map<String, String>> applications = new ArrayList<>();
+
+        String[] lines = response.split("\n");
+        boolean headerPassed = false;
+
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+
+            if (line.toLowerCase().contains("application") && line.toLowerCase().contains("status")) {
+                headerPassed = true;
+                continue;
+            }
+
+            if (!headerPassed) continue;
+
+            String[] parts = line.split("\\s{2,}");
+            if (parts.length >= 2) {
+                Map<String, String> app = new HashMap<>();
+                app.put("name", parts[0].trim());
+                app.put("status", parts[1].trim());
+                if (parts.length > 2) {
+                    app.put("details", parts[2].trim());
+                }
+                applications.add(app);
+            }
+        }
+
+        parsedData.put("applications", applications);
+        parsedData.put("totalApplications", applications.size());
+        parsedData.put("runningApplications",
+            applications.stream().filter(a -> a.get("status").equalsIgnoreCase("RUNNING")).count());
+        parsedData.put("stoppedApplications",
+            applications.stream().filter(a -> a.get("status").equalsIgnoreCase("STOPPED")).count());
+        parsedData.put("rawResponse", response);
+
+        return parsedData;
     }
 
     private String generateExecutionId() {
