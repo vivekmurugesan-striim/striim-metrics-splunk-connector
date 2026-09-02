@@ -44,7 +44,7 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(allowedOrigins);
         } else {
             // Development: Allow all origins
-            configuration.setAllowedOriginPatterns("*");
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
