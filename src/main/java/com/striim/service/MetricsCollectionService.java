@@ -64,9 +64,20 @@ public class MetricsCollectionService {
 
             for (String command : commands) {
                 log.info("Executing command: {}", command);
-                Map<String, Object> metrics = striimApiClient.callStriimApi(striimUrl, striimUser, striimPassword, command);
-                allMetrics.putAll(metrics);
-                metricsCount++;
+                String response = striimApiClient.executeMonCommand(striimUrl, striimUser, striimPassword, command);
+
+                if (response != null && !response.isEmpty()) {
+                    // Parse response and add to metrics
+                    Map<String, Object> commandMetrics = new HashMap<>();
+                    commandMetrics.put("command", command);
+                    commandMetrics.put("response", response);
+                    commandMetrics.put("timestamp", System.currentTimeMillis());
+                    allMetrics.put("metric_" + metricsCount, commandMetrics);
+                    metricsCount++;
+                    log.debug("Command executed successfully, response length: {} chars", response.length());
+                } else {
+                    log.warn("No response from command: {}", command);
+                }
             }
 
             boolean published = splunkHecClient.publishMetrics(splunkHecUrl, splunkToken, splunkIndex, allMetrics);
