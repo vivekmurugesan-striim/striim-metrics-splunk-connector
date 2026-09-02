@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: striim-connector-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: striim_connector
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/migration/V1__initial_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - striim-network
+
+  splunk:
+    image: splunk/splunk:latest
+    container_name: striim-connector-splunk
+    restart: unless-stopped
+    environment:
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:-ChangedPassword}
+      SPLUNK_START_ARGS: '--accept-license'
+      SPLUNK_APPS_URL: 'http://localhost:8089'
+    ports:
+      - "8000:8000"   # Splunk Web UI
+      - "8088:8088"   # HEC (HTTP Event Collector)
+      - "8089:8089"   # Management port
+    volumes:
+      - splunk_data:/opt/splunk/var
+      - ./scripts/splunk-init.sh:/opt/splunk-init.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/en-US/app/launcher"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - striim-network
+    command: >
+      bash -c "
+        /sbin/entrypoint.sh &&
+        sleep 30 &&
+        bash /opt/splunk-init.sh
+      "
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: striim-connector-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/striim_connector
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      STRIIM_METRICS_COLLECTION_INTERVAL_SECONDS: ${COLLECTION_INTERVAL:-60}
+      # Use local Splunk for development
+      SPLUNK_HEC_URL: ${SPLUNK_HEC_URL:-http://splunk:8088/services/collector}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      splunk:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - striim-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: striim-connector-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - striim-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+  splunk_data:
+    driver: local
+
+networks:
+  striim-network:
+    driver: bridge
