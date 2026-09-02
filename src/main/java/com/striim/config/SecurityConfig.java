@@ -21,7 +21,7 @@ public class SecurityConfig {
             .and()
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/api/v1/**").permitAll()
+                .requestMatchers("/v1/**").permitAll()
                 .anyRequest().authenticated()
             );
 
