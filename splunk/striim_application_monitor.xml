@@ -88,36 +88,7 @@
     </panel>
   </row>
 
-  <!-- Row 2: Applications Status Table -->
-  <row>
-    <panel>
-      <title>All Applications Status</title>
-      <table>
-        <search>
-          <query>index=striim_app_mon sourcetype=_json
-| spath path=metric_0.applications{} output=apps
-| mvexpand apps
-| spath input=apps path=name output="Application Name"
-| spath input=apps path=status output="Status"
-| spath input=apps path=rate output="Rate"
-| spath input=apps path=numServers output="Servers"
-| spath input=apps path=latestActivity output="Latest Activity"
-| table "Application Name", "Status", "Rate", "Servers", "Latest Activity"
-| sort - "Status"</query>
-          <earliest>$time_picker.earliest$</earliest>
-          <latest>$time_picker.latest$</latest>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="count">50</option>
-        <option name="wrap">true</option>
-        <format type="color" field="Status">
-          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0", "HALT": "#FF9900", "TERMINATED": "#999999", "COMPLETED": "#28A745", "NOT_ENOUGH_SERVERS": "#FFC107"}</colorPalette>
-        </format>
-      </table>
-    </panel>
-  </row>
-
-  <!-- Row 3: Status Distribution -->
+  <!-- Row 2: Status Distribution -->
   <row>
     <panel>
       <title>Application Status Distribution</title>
@@ -151,6 +122,35 @@
         </search>
         <option name="drilldown">none</option>
         <option name="count">10</option>
+        <format type="color" field="Status">
+          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0", "HALT": "#FF9900", "TERMINATED": "#999999", "COMPLETED": "#28A745", "NOT_ENOUGH_SERVERS": "#FFC107"}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Row 3: Applications Status Table -->
+  <row>
+    <panel>
+      <title>All Applications Status</title>
+      <table>
+        <search>
+          <query>index=striim_app_mon sourcetype=_json
+| spath path=metric_0.applications{} output=apps
+| mvexpand apps
+| spath input=apps path=name output="Application Name"
+| spath input=apps path=status output="Status"
+| spath input=apps path=rate output="Rate"
+| spath input=apps path=numServers output="Servers"
+| spath input=apps path=latestActivity output="Latest Activity"
+| table "Application Name", "Status", "Rate", "Servers", "Latest Activity"
+| sort - "Status"</query>
+          <earliest>$time_picker.earliest$</earliest>
+          <latest>$time_picker.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">50</option>
+        <option name="wrap">true</option>
         <format type="color" field="Status">
           <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0", "HALT": "#FF9900", "TERMINATED": "#999999", "COMPLETED": "#28A745", "NOT_ENOUGH_SERVERS": "#FFC107"}</colorPalette>
         </format>
