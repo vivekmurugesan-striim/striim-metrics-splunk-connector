@@ -5,7 +5,7 @@ This directory contains Splunk dashboards and configuration for monitoring Strii
 ## Files
 
 ### striim_application_monitor.xml
-A comprehensive Splunk dashboard for monitoring Striim applications in real-time using mon command metrics.
+A comprehensive Splunk dashboard for monitoring Striim applications in real-time using mon command metrics (Classic Dashboard using Simple XML format).
 
 **Dashboard Features:**
 - **Running Applications Count** - Real-time count of Striim applications with RUNNING status
@@ -55,81 +55,80 @@ The dashboard expects metrics data in this JSON structure:
 
 ## How to Import the Dashboard
 
-### Step-by-Step: Method 1 (UI Import - Recommended)
+**Important:** Splunk does NOT provide a direct "Import XML" button in the UI for Classic dashboards. Use one of the methods below instead (per official Splunk documentation).
 
-**Best for:** One-time import, visual verification
+### ✅ Method 1: Direct File Copy (RECOMMENDED)
 
-1. **Open Splunk**
-   - Navigate to: `http://localhost:8000` (or your Splunk URL)
-   - Log in with admin credentials
+**Best for:** Everyone - simplest, most reliable
 
-2. **Create New Dashboard**
-   - Click **Dashboards** (top menu)
-   - Click **Create New** → **Dashboard**
-   - Enter name: `striim_application_monitor`
-   - Select App: `search`
-   - Click **Create Dashboard**
-
-3. **Replace Dashboard XML**
-   - Click **Edit** (top right of dashboard)
-   - Click **Edit Source** (top right)
-   - Select ALL existing XML text (Ctrl+A or Cmd+A)
-   - Delete it
-   
-4. **Paste New Dashboard**
-   - Open `striim_application_monitor.xml` in a text editor
-   - Copy entire contents
-   - Paste into the Splunk XML editor
-   - Click **Save**
-
-5. **Verify Dashboard**
-   - You should see the dashboard with 9 panels
-   - All panels should show "No results" if data hasn't been collected yet
-   - Once metrics are collected, data will appear automatically
-
-### Method 2: Direct File Copy (Docker)
-
-**Best for:** Automated deployments, scripting
+This works because Splunk automatically recognizes XML files placed in the `/local/data/ui/views/` directory.
 
 ```bash
 # Navigate to repository root
 cd /Users/vivekmurugesan/Code/Striim-Splunk-Connector
 
-# Copy dashboard XML directly into Splunk container
+# Copy dashboard XML to Splunk's views directory
 docker compose cp splunk/striim_application_monitor.xml \
   splunk:/opt/splunk/etc/apps/search/local/data/ui/views/striim_application_monitor.xml
 
-# Restart Splunk to load the new dashboard
+# Restart Splunk (optional but recommended)
 docker compose restart splunk
-
-# Verify it's loaded (wait 30 seconds after restart)
 sleep 30
-
-# Access dashboard at: http://localhost:8000/en-US/app/search/striim_application_monitor
 ```
 
-### Method 3: Manual File Placement (Advanced)
+**Access the dashboard:**
+- URL: `http://localhost:8000/en-US/app/search/striim_application_monitor`
+- Or go to **Dashboards** in Splunk UI and search for "striim_application_monitor"
 
-**Best for:** Custom Splunk installations
+### Method 2: REST API / Command Line
 
-1. **Locate Splunk Views Directory**
-   - Local installation: `$SPLUNK_HOME/etc/apps/search/local/data/ui/views/`
-   - Docker container: `/opt/splunk/etc/apps/search/local/data/ui/views/`
+**Best for:** Automated deployments and scripting
 
-2. **Copy File**
-   ```bash
-   cp splunk/striim_application_monitor.xml \
-     /path/to/splunk/etc/apps/search/local/data/ui/views/
-   ```
+Using Splunk's REST API (per official Splunk documentation):
 
-3. **Restart Splunk**
-   ```bash
-   # For Docker
-   docker compose restart splunk
-   
-   # Or native Splunk
-   $SPLUNK_HOME/bin/splunk restart
-   ```
+```bash
+# Create dashboard from XML using REST API
+curl -X POST "http://localhost:8000/servicesNS/admin/search/data/ui/views" \
+  -u admin:changeme \
+  -d "name=striim_application_monitor" \
+  -d "eai:data=$(cat splunk/striim_application_monitor.xml)" \
+  -d "app=search"
+```
+
+Or using Splunk CLI:
+
+```bash
+docker compose exec splunk bash -c \
+  "/opt/splunk/bin/splunk create view striim_application_monitor \
+   -auth admin:changeme \
+   -app search"
+```
+
+### Method 3: Manual Edit in Splunk UI
+
+**Best for:** If you want to verify in UI before saving
+
+1. **Create a temporary dashboard**
+   - Log in to Splunk: `http://localhost:8000`
+   - Click **Dashboards** (top menu)
+   - Look for an option to create or import
+   - Create any dashboard (can delete later)
+
+2. **Edit the source**
+   - Open your dashboard
+   - Click **Edit** (top right)
+   - Click the **source code/XML icon** in the toolbar
+   - A source editor will open
+
+3. **Paste the XML**
+   - Clear all existing content
+   - Open `splunk/striim_application_monitor.xml` in a text editor
+   - Copy the entire contents
+   - Paste into Splunk's source editor
+   - Click **Save**
+
+4. **Rename dashboard (optional)**
+   - Dashboard settings → Change name to `striim_application_monitor`
 
 ## Prerequisites
 
