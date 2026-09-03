@@ -97,7 +97,9 @@
           <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.applications{} output=apps
 | mvexpand apps
+| spath input=apps path=name output=app_name
 | spath input=apps path=status output=status
+| dedup app_name
 | stats count by status</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -114,9 +116,12 @@
           <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.applications{} output=apps
 | mvexpand apps
+| spath input=apps path=name output=app_name
 | spath input=apps path=status output=Status
-| stats count as "Total Count" by Status
-| eval "Percentage"=round((count/sum(count))*100,2)."%"</query>
+| dedup app_name
+| stats count by Status
+| eval "Percentage"=round((count/sum(count))*100,2)."%"
+| rename count as "Total Count"</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
         </search>
@@ -143,6 +148,7 @@
 | spath input=apps path=rate output="Rate"
 | spath input=apps path=numServers output="Servers"
 | spath input=apps path=latestActivity output="Latest Activity"
+| dedup "Application Name"
 | table "Application Name", "Status", "Rate", "Servers", "Latest Activity"
 | sort - "Status"</query>
           <earliest>$time_picker.earliest$</earliest>

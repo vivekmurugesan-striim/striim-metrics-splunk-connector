@@ -169,12 +169,24 @@ public class MetricsCollectionService {
             applications.stream().filter(a -> "STOPPED".equalsIgnoreCase(a.get("status").toString())).count());
         parsedData.put("createdApplications",
             applications.stream().filter(a -> "CREATED".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("haltApplications",
+            applications.stream().filter(a -> "HALT".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("terminatedApplications",
+            applications.stream().filter(a -> "TERMINATED".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("completedApplications",
+            applications.stream().filter(a -> "COMPLETED".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("notEnoughServersApplications",
+            applications.stream().filter(a -> "NOT_ENOUGH_SERVERS".equalsIgnoreCase(a.get("status").toString())).count());
 
-        log.debug("Parsed data: total={}, running={}, stopped={}, created={}",
+        log.debug("Parsed data: total={}, running={}, stopped={}, created={}, halt={}, terminated={}, completed={}, not_enough_servers={}",
             parsedData.get("totalApplications"),
             parsedData.get("runningApplications"),
             parsedData.get("stoppedApplications"),
-            parsedData.get("createdApplications"));
+            parsedData.get("createdApplications"),
+            parsedData.get("haltApplications"),
+            parsedData.get("terminatedApplications"),
+            parsedData.get("completedApplications"),
+            parsedData.get("notEnoughServersApplications"));
 
         return parsedData;
     }
