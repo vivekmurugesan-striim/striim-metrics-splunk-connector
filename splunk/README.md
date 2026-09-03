@@ -154,20 +154,20 @@ Before the dashboard will display data, ensure:
 4. **Metrics Collected**
    - Dashboard → Click **Trigger Metrics Collection**
    - Wait for success message
-   - Check Splunk: `index=striim_metrics sourcetype=_json | head`
+   - Check Splunk: `index=striim_app_mon sourcetype=_json | head`
 
 ## Verifying Data Flow
 
 ### Test 1: Check Raw Events
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | head 5
 ```
 Should show JSON events with mon command output.
 
 ### Test 2: Verify Application Data
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | spath output.striimApplications{}.fullName
 | head
 ```
@@ -175,7 +175,7 @@ Should show application names from your Striim instance.
 
 ### Test 3: Check Status Counts
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | spath output.striimApplications{}.statusChange
 | mvexpand "output.striimApplications{}.statusChange"
 | rename "output.striimApplications{}.statusChange" as status
@@ -205,7 +205,7 @@ Edit the XML to add new panels. Example structure:
     <title>Your Panel Title</title>
     <table>
       <search>
-        <query>index=striim_metrics sourcetype=_json | your search here</query>
+        <query>index=striim_app_mon sourcetype=_json | your search here</query>
       </search>
     </table>
   </panel>
@@ -218,13 +218,13 @@ Edit the XML to add new panels. Example structure:
 
 **Check 1: Verify data exists**
 ```spl
-index=striim_metrics
+index=striim_app_mon
 ```
 If no results, metrics haven't been collected yet.
 
 **Check 2: Verify sourcetype**
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 ```
 Should return results. If not, check Splunk token configuration.
 
@@ -264,7 +264,7 @@ Look for publishing errors.
 
 ### Find All Running Applications
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | spath output.striimApplications{}.statusChange
 | search "output.striimApplications{}.statusChange"=RUNNING
 | spath output.striimApplications{}.fullName
@@ -275,7 +275,7 @@ index=striim_metrics sourcetype=_json
 
 ### Find Recently Changed Applications
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | spath output.striimApplications{}
 | mvexpand "output.striimApplications{}"
 | rename "output.striimApplications{}.fullName" as app,
@@ -287,7 +287,7 @@ index=striim_metrics sourcetype=_json
 
 ### Alert When Application Stops
 ```spl
-index=striim_metrics sourcetype=_json
+index=striim_app_mon sourcetype=_json
 | spath output.striimApplications{}.statusChange
 | search "output.striimApplications{}.statusChange"=STOPPED
 | spath output.striimApplications{}.fullName

@@ -20,7 +20,7 @@
       <title>Running Applications</title>
       <single>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.statusChange
 | search "output.striimApplications{}.statusChange"=RUNNING
 | stats dc(eval(if("output.striimApplications{}.statusChange"=RUNNING, 1, null()))) as count
@@ -40,7 +40,7 @@
       <title>Stopped Applications</title>
       <single>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.statusChange
 | search "output.striimApplications{}.statusChange"=STOPPED
 | stats dc(eval(if("output.striimApplications{}.statusChange"=STOPPED, 1, null()))) as count
@@ -60,7 +60,7 @@
       <title>Created Applications</title>
       <single>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.statusChange
 | search "output.striimApplications{}.statusChange"=CREATED
 | stats dc(eval(if("output.striimApplications{}.statusChange"=CREATED, 1, null()))) as count
@@ -77,7 +77,7 @@
       <title>Total Applications</title>
       <single>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.fullName
 | stats dc("output.striimApplications{}.fullName") as total_count
 | fields total_count</query>
@@ -97,7 +97,7 @@
       <title>All Applications Status</title>
       <table>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}
 | mvexpand "output.striimApplications{}"
 | rename "output.striimApplications{}.fullName" as "Application Name",
@@ -126,7 +126,7 @@
       <title>Application Status Distribution</title>
       <chart>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.statusChange
 | mvexpand "output.striimApplications{}.statusChange"
 | rename "output.striimApplications{}.statusChange" as status
@@ -143,7 +143,7 @@
       <title>Status Breakdown</title>
       <table>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | spath output.striimApplications{}.statusChange
 | mvexpand "output.striimApplications{}.statusChange"
 | rename "output.striimApplications{}.statusChange" as Status
@@ -167,7 +167,7 @@
       <title>Metrics Collection Timeline</title>
       <chart>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | stats count by _time
 | timechart count(eval(count))</query>
           <earliest>$time_picker.earliest$</earliest>
@@ -187,7 +187,7 @@
       <title>Recent Metrics Events (Raw JSON)</title>
       <table>
         <search>
-          <query>index=striim_metrics sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json $time_picker$
 | fields _time, _raw
 | head 10
 | sort - _time</query>
