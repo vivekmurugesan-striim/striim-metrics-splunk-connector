@@ -20,7 +20,7 @@
       <title>Running Applications</title>
       <single>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.runningApplications output=running_count
 | stats latest(running_count) as count
 | fields count</query>
@@ -39,7 +39,7 @@
       <title>Stopped Applications</title>
       <single>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.stoppedApplications output=stopped_count
 | stats latest(stopped_count) as count
 | fields count</query>
@@ -58,7 +58,7 @@
       <title>Created Applications</title>
       <single>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.createdApplications output=created_count
 | stats latest(created_count) as count
 | fields count</query>
@@ -74,7 +74,7 @@
       <title>Total Applications</title>
       <single>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.totalApplications output=total_count
 | stats latest(total_count) as total_count
 | fields total_count</query>
@@ -94,7 +94,7 @@
       <title>All Applications Status</title>
       <table>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.applications{} output=apps
 | mvexpand apps
 | spath input=apps path=name output="Application Name"
@@ -123,7 +123,7 @@
       <title>Application Status Distribution</title>
       <chart>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.applications{} output=apps
 | mvexpand apps
 | spath input=apps path=status output=status
@@ -140,7 +140,7 @@
       <title>Status Breakdown</title>
       <table>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | spath path=metric_0.applications{} output=apps
 | mvexpand apps
 | spath input=apps path=status output=Status
@@ -164,7 +164,7 @@
       <title>Metrics Collection Timeline</title>
       <chart>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | stats count by _time
 | timechart count(eval(count))</query>
           <earliest>$time_picker.earliest$</earliest>
@@ -184,7 +184,7 @@
       <title>Recent Metrics Events (Raw JSON)</title>
       <table>
         <search>
-          <query>index=striim_app_mon sourcetype=_json $time_picker$
+          <query>index=striim_app_mon sourcetype=_json
 | fields _time, _raw
 | head 10
 | sort - _time</query>
