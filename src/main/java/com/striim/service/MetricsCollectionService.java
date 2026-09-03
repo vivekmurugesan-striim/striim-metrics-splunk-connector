@@ -9,16 +9,19 @@ import com.striim.repository.SystemConfigRepository;
 import com.striim.util.EncryptionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
+import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @Slf4j
 public class MetricsCollectionService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private ScheduledFuture<?> scheduledTask;
 
     @Autowired
     private StriimApiClient striimApiClient;
@@ -32,8 +35,32 @@ public class MetricsCollectionService {
     @Autowired
     private ExecutionHistoryRepository historyRepository;
 
-    @Scheduled(fixedRateString = "${striim.metrics.collection-interval-seconds:60}000")
-    public void collectMetricsScheduled() {
+    @Autowired
+    private ThreadPoolTaskScheduler taskScheduler;
+
+    @PostConstruct
+    public void initializeScheduling() {
+        scheduleMetricsCollection();
+    }
+
+    private void scheduleMetricsCollection() {
+        if (scheduledTask != null) {
+            scheduledTask.cancel(false);
+        }
+
+        SystemConfig config = configRepository.findById("default").orElse(null);
+        long intervalSeconds = (config != null && config.getCollectionIntervalSeconds() > 0)
+            ? config.getCollectionIntervalSeconds()
+            : 60;
+
+        log.info("Scheduling metrics collection with interval: {} seconds", intervalSeconds);
+        scheduledTask = taskScheduler.scheduleAtFixedRate(
+            this::collectMetricsScheduledTask,
+            intervalSeconds * 1000
+        );
+    }
+
+    private void collectMetricsScheduledTask() {
         SystemConfig config = configRepository.findById("default").orElse(null);
         if (config == null) {
             log.debug("No configuration found, skipping scheduled collection");
@@ -41,6 +68,11 @@ public class MetricsCollectionService {
         }
 
         collectAndPublishMetrics(StriimMonCommands.DEFAULT_COMMANDS, "SCHEDULED");
+    }
+
+    public void updateCollectionInterval() {
+        log.info("Collection interval updated, rescheduling metrics collection");
+        scheduleMetricsCollection();
     }
 
     public String collectAndPublishMetrics(List<String> commands, String triggerType) {

@@ -3,6 +3,7 @@ package com.striim.controller;
 import com.striim.dto.ConfigRequest;
 import com.striim.dto.ConfigResponse;
 import com.striim.service.ConfigService;
+import com.striim.service.MetricsCollectionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,10 +18,16 @@ public class ConfigController {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private MetricsCollectionService metricsCollectionService;
+
     @PostMapping
     public ResponseEntity<ConfigResponse> saveConfiguration(@RequestBody ConfigRequest request) {
         log.info("Saving configuration");
         ConfigResponse response = configService.saveConfiguration(request);
+        if ("SUCCESS".equals(response.getStatus())) {
+            metricsCollectionService.updateCollectionInterval();
+        }
         HttpStatus status = "SUCCESS".equals(response.getStatus()) ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }

@@ -120,8 +120,10 @@
 | spath input=apps path=status output=Status
 | dedup app_name
 | stats count by Status
-| eval "Percentage"=round((count/sum(count))*100,2)."%"
-| rename count as "Total Count"</query>
+| eventstats sum(count) as total
+| eval "Percentage"=round((count/total)*100,2)."%"
+| rename count as "Total Count"
+| fields Status, "Total Count", "Percentage"</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
         </search>
