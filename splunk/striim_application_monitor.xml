@@ -21,9 +21,8 @@
       <single>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.statusChange
-| search "output.striimApplications{}.statusChange"=RUNNING
-| stats dc(eval(if("output.striimApplications{}.statusChange"=RUNNING, 1, null()))) as count
+| spath path=metric_0.runningApplications output=running_count
+| stats latest(running_count) as count
 | fields count</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -41,9 +40,8 @@
       <single>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.statusChange
-| search "output.striimApplications{}.statusChange"=STOPPED
-| stats dc(eval(if("output.striimApplications{}.statusChange"=STOPPED, 1, null()))) as count
+| spath path=metric_0.stoppedApplications output=stopped_count
+| stats latest(stopped_count) as count
 | fields count</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -61,9 +59,8 @@
       <single>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.statusChange
-| search "output.striimApplications{}.statusChange"=CREATED
-| stats dc(eval(if("output.striimApplications{}.statusChange"=CREATED, 1, null()))) as count
+| spath path=metric_0.createdApplications output=created_count
+| stats latest(created_count) as count
 | fields count</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -78,8 +75,8 @@
       <single>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.fullName
-| stats dc("output.striimApplications{}.fullName") as total_count
+| spath path=metric_0.totalApplications output=total_count
+| stats latest(total_count) as total_count
 | fields total_count</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -98,13 +95,13 @@
       <table>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}
-| mvexpand "output.striimApplications{}"
-| rename "output.striimApplications{}.fullName" as "Application Name",
-         "output.striimApplications{}.statusChange" as "Status",
-         "output.striimApplications{}.rate" as "Rate",
-         "output.striimApplications{}.numServers" as "Servers",
-         "output.striimApplications{}.latestActivity" as "Latest Activity"
+| spath path=metric_0.applications{} output=apps
+| mvexpand apps
+| spath input=apps path=name output="Application Name"
+| spath input=apps path=status output="Status"
+| spath input=apps path=rate output="Rate"
+| spath input=apps path=numServers output="Servers"
+| spath input=apps path=latestActivity output="Latest Activity"
 | fields "Application Name", "Status", "Rate", "Servers", "Latest Activity"
 | sort - "Status"</query>
           <earliest>$time_picker.earliest$</earliest>
@@ -114,7 +111,7 @@
         <option name="count">50</option>
         <option name="wrap">true</option>
         <format type="color" field="Status">
-          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0"}</colorPalette>
+          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0", "HALT": "#FF9900", "TERMINATED": "#999999", "COMPLETED": "#28A745", "NOT_ENOUGH_SERVERS": "#FFC107"}</colorPalette>
         </format>
       </table>
     </panel>
@@ -127,9 +124,9 @@
       <chart>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.statusChange
-| mvexpand "output.striimApplications{}.statusChange"
-| rename "output.striimApplications{}.statusChange" as status
+| spath path=metric_0.applications{} output=apps
+| mvexpand apps
+| spath input=apps path=status output=status
 | stats count by status</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
@@ -144,9 +141,9 @@
       <table>
         <search>
           <query>index=striim_app_mon sourcetype=_json $time_picker$
-| spath output.striimApplications{}.statusChange
-| mvexpand "output.striimApplications{}.statusChange"
-| rename "output.striimApplications{}.statusChange" as Status
+| spath path=metric_0.applications{} output=apps
+| mvexpand apps
+| spath input=apps path=status output=Status
 | stats count as "Total Count" by Status
 | eval "Percentage"=round((count/sum(count))*100,2)."%"</query>
           <earliest>$time_picker.earliest$</earliest>
@@ -155,7 +152,7 @@
         <option name="drilldown">none</option>
         <option name="count">10</option>
         <format type="color" field="Status">
-          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0"}</colorPalette>
+          <colorPalette type="map">{"RUNNING": "#65A637", "STOPPED": "#D93F3C", "CREATED": "#1565C0", "HALT": "#FF9900", "TERMINATED": "#999999", "COMPLETED": "#28A745", "NOT_ENOUGH_SERVERS": "#FFC107"}</colorPalette>
         </format>
       </table>
     </panel>
