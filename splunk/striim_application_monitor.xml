@@ -165,8 +165,7 @@
       <chart>
         <search>
           <query>index=striim_app_mon sourcetype=_json
-| stats count by _time
-| timechart count(eval(count))</query>
+| timechart count as "Collection Count"</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
         </search>
