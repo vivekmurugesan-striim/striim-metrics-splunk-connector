@@ -107,27 +107,49 @@ public class MetricsCollectionService {
         List<Map<String, Object>> applications = new ArrayList<>();
 
         try {
+            log.debug("Parsing mon response, length: {} chars", response.length());
             com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(response);
 
-            if (rootNode.isObject()) {
+            // Try to find striimApplications array at any level
+            com.fasterxml.jackson.databind.JsonNode appsNode = null;
+
+            // First try: output.striimApplications
+            if (rootNode.has("output")) {
                 com.fasterxml.jackson.databind.JsonNode outputNode = rootNode.get("output");
                 if (outputNode != null && outputNode.has("striimApplications")) {
-                    com.fasterxml.jackson.databind.JsonNode appsNode = outputNode.get("striimApplications");
-                    if (appsNode.isArray()) {
-                        for (com.fasterxml.jackson.databind.JsonNode appNode : appsNode) {
-                            Map<String, Object> app = new HashMap<>();
-                            app.put("name", appNode.has("fullName") ? appNode.get("fullName").asText() : "");
-                            app.put("status", appNode.has("statusChange") ? appNode.get("statusChange").asText() : "UNKNOWN");
-                            app.put("rate", appNode.has("rate") ? appNode.get("rate").asText() : "0");
-                            app.put("numServers", appNode.has("numServers") ? appNode.get("numServers").asText() : "0");
-                            applications.add(app);
-                        }
-                    }
+                    appsNode = outputNode.get("striimApplications");
+                    log.debug("Found striimApplications in output node");
                 }
             }
+
+            // Second try: direct striimApplications (root level)
+            if (appsNode == null && rootNode.has("striimApplications")) {
+                appsNode = rootNode.get("striimApplications");
+                log.debug("Found striimApplications at root level");
+            }
+
+            // Parse applications if found
+            if (appsNode != null && appsNode.isArray()) {
+                log.debug("Processing {} applications", appsNode.size());
+                for (com.fasterxml.jackson.databind.JsonNode appNode : appsNode) {
+                    if (!appNode.isObject()) continue;
+
+                    Map<String, Object> app = new HashMap<>();
+                    app.put("name", appNode.has("fullName") ? appNode.get("fullName").asText() : "");
+                    app.put("status", appNode.has("statusChange") ? appNode.get("statusChange").asText() : "UNKNOWN");
+                    app.put("rate", appNode.has("rate") ? appNode.get("rate").asText() : "0");
+                    app.put("numServers", appNode.has("numServers") ? appNode.get("numServers").asText() : "0");
+                    app.put("cpuRate", appNode.has("cpuRate") ? appNode.get("cpuRate").asText() : "");
+                    applications.add(app);
+                }
+                log.info("Successfully parsed {} applications from mon response", applications.size());
+            } else {
+                log.warn("striimApplications array not found in response or not an array");
+                log.debug("Response structure: {}", rootNode.toPrettyString());
+            }
         } catch (Exception e) {
-            log.warn("Failed to parse JSON mon response, attempting text parse: {}", e.getMessage());
-            parseAsPlainText(response, applications);
+            log.error("Error parsing JSON mon response: {}", e.getMessage(), e);
+            log.debug("Raw response for debugging: {}", response);
         }
 
         parsedData.put("applications", applications);
@@ -138,6 +160,12 @@ public class MetricsCollectionService {
             applications.stream().filter(a -> "STOPPED".equalsIgnoreCase(a.get("status").toString())).count());
         parsedData.put("createdApplications",
             applications.stream().filter(a -> "CREATED".equalsIgnoreCase(a.get("status").toString())).count());
+
+        log.debug("Parsed data: total={}, running={}, stopped={}, created={}",
+            parsedData.get("totalApplications"),
+            parsedData.get("runningApplications"),
+            parsedData.get("stoppedApplications"),
+            parsedData.get("createdApplications"));
 
         return parsedData;
     }
