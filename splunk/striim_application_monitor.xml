@@ -102,7 +102,7 @@
 | spath input=apps path=rate output="Rate"
 | spath input=apps path=numServers output="Servers"
 | spath input=apps path=latestActivity output="Latest Activity"
-| fields "Application Name", "Status", "Rate", "Servers", "Latest Activity"
+| table "Application Name", "Status", "Rate", "Servers", "Latest Activity"
 | sort - "Status"</query>
           <earliest>$time_picker.earliest$</earliest>
           <latest>$time_picker.latest$</latest>
