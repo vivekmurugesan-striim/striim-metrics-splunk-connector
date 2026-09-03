@@ -1,5 +1,6 @@
 package com.striim.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.striim.config.StriimMonCommands;
 import com.striim.entity.ExecutionHistory;
 import com.striim.entity.SystemConfig;
@@ -16,6 +17,8 @@ import java.util.*;
 @Service
 @Slf4j
 public class MetricsCollectionService {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private StriimApiClient striimApiClient;
@@ -101,8 +104,45 @@ public class MetricsCollectionService {
 
     private Map<String, Object> parseMonResponse(String response) {
         Map<String, Object> parsedData = new HashMap<>();
-        List<Map<String, String>> applications = new ArrayList<>();
+        List<Map<String, Object>> applications = new ArrayList<>();
 
+        try {
+            com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(response);
+
+            if (rootNode.isObject()) {
+                com.fasterxml.jackson.databind.JsonNode outputNode = rootNode.get("output");
+                if (outputNode != null && outputNode.has("striimApplications")) {
+                    com.fasterxml.jackson.databind.JsonNode appsNode = outputNode.get("striimApplications");
+                    if (appsNode.isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode appNode : appsNode) {
+                            Map<String, Object> app = new HashMap<>();
+                            app.put("name", appNode.has("fullName") ? appNode.get("fullName").asText() : "");
+                            app.put("status", appNode.has("statusChange") ? appNode.get("statusChange").asText() : "UNKNOWN");
+                            app.put("rate", appNode.has("rate") ? appNode.get("rate").asText() : "0");
+                            app.put("numServers", appNode.has("numServers") ? appNode.get("numServers").asText() : "0");
+                            applications.add(app);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse JSON mon response, attempting text parse: {}", e.getMessage());
+            parseAsPlainText(response, applications);
+        }
+
+        parsedData.put("applications", applications);
+        parsedData.put("totalApplications", applications.size());
+        parsedData.put("runningApplications",
+            applications.stream().filter(a -> "RUNNING".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("stoppedApplications",
+            applications.stream().filter(a -> "STOPPED".equalsIgnoreCase(a.get("status").toString())).count());
+        parsedData.put("createdApplications",
+            applications.stream().filter(a -> "CREATED".equalsIgnoreCase(a.get("status").toString())).count());
+
+        return parsedData;
+    }
+
+    private void parseAsPlainText(String response, List<Map<String, Object>> applications) {
         String[] lines = response.split("\n");
         boolean headerPassed = false;
 
@@ -119,7 +159,7 @@ public class MetricsCollectionService {
 
             String[] parts = line.split("\\s{2,}");
             if (parts.length >= 2) {
-                Map<String, String> app = new HashMap<>();
+                Map<String, Object> app = new HashMap<>();
                 app.put("name", parts[0].trim());
                 app.put("status", parts[1].trim());
                 if (parts.length > 2) {
@@ -128,16 +168,6 @@ public class MetricsCollectionService {
                 applications.add(app);
             }
         }
-
-        parsedData.put("applications", applications);
-        parsedData.put("totalApplications", applications.size());
-        parsedData.put("runningApplications",
-            applications.stream().filter(a -> a.get("status").equalsIgnoreCase("RUNNING")).count());
-        parsedData.put("stoppedApplications",
-            applications.stream().filter(a -> a.get("status").equalsIgnoreCase("STOPPED")).count());
-        parsedData.put("rawResponse", response);
-
-        return parsedData;
     }
 
     private String generateExecutionId() {
