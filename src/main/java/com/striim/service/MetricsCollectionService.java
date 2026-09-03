@@ -110,21 +110,30 @@ public class MetricsCollectionService {
             log.debug("Parsing mon response, length: {} chars", response.length());
             com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(response);
 
+            // Handle both array-wrapped and direct object responses
+            com.fasterxml.jackson.databind.JsonNode dataNode = rootNode;
+
+            // If response is an array, get the first element
+            if (rootNode.isArray() && rootNode.size() > 0) {
+                log.debug("Response is array-wrapped, extracting first element");
+                dataNode = rootNode.get(0);
+            }
+
             // Try to find striimApplications array at any level
             com.fasterxml.jackson.databind.JsonNode appsNode = null;
 
-            // First try: output.striimApplications
-            if (rootNode.has("output")) {
-                com.fasterxml.jackson.databind.JsonNode outputNode = rootNode.get("output");
+            // First try: output.striimApplications (typical location)
+            if (dataNode.has("output")) {
+                com.fasterxml.jackson.databind.JsonNode outputNode = dataNode.get("output");
                 if (outputNode != null && outputNode.has("striimApplications")) {
                     appsNode = outputNode.get("striimApplications");
                     log.debug("Found striimApplications in output node");
                 }
             }
 
-            // Second try: direct striimApplications (root level)
-            if (appsNode == null && rootNode.has("striimApplications")) {
-                appsNode = rootNode.get("striimApplications");
+            // Second try: direct striimApplications (root/top-level)
+            if (appsNode == null && dataNode.has("striimApplications")) {
+                appsNode = dataNode.get("striimApplications");
                 log.debug("Found striimApplications at root level");
             }
 
@@ -145,7 +154,7 @@ public class MetricsCollectionService {
                 log.info("Successfully parsed {} applications from mon response", applications.size());
             } else {
                 log.warn("striimApplications array not found in response or not an array");
-                log.debug("Response structure: {}", rootNode.toPrettyString());
+                log.debug("Response structure: {}", dataNode.toPrettyString());
             }
         } catch (Exception e) {
             log.error("Error parsing JSON mon response: {}", e.getMessage(), e);
