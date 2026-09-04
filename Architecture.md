@@ -6,137 +6,32 @@ The Striim-Splunk Connector is a Spring Boot application that bridges Striim and
 
 ## Component Architecture Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          USER INTERFACE LAYER                               │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                      React Frontend (Port 3000)                      │   │
-│  │  • Configuration Panel (Striim & Splunk credentials)                 │   │
-│  │  • Metrics Dashboard Summary                                         │   │
-│  │  • Trigger Manual Collection                                         │   │
-│  │  • View Execution History                                            │   │
-│  └────────────────────────────┬─────────────────────────────────────────┘   │
-│                                │                                              │
-│                          HTTP/JSON API                                       │
-│                                │                                              │
-└────────────────────────────────┼──────────────────────────────────────────────┘
-                                 │
-┌────────────────────────────────┼──────────────────────────────────────────────┐
-│                      APPLICATION LAYER (Backend)                             │
-├────────────────────────────────┼──────────────────────────────────────────────┤
-│                                 ▼                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │          Spring Boot Application (Port 8080, Port 9080)              │   │
-│  │                                                                       │   │
-│  │  ┌────────────────────────────────────────────────────────────────┐ │   │
-│  │  │                   REST Controllers                             │ │   │
-│  │  │  • ConfigController (/v1/config)      [GET, POST]            │ │   │
-│  │  │  • CollectionController (/v1/collect) [GET, POST]            │ │   │
-│  │  │  • HistoryController (/v1/history)    [GET]                  │ │   │
-│  │  └───────────────┬──────────────────────┬────────────┬───────────┘ │   │
-│  │                  │                      │            │              │   │
-│  │  ┌──────────────▼──┐  ┌────────────────▼──┐  ┌───────▼────────────┐│   │
-│  │  │  ConfigService  │  │ CollectionService  │  │  HistoryService   ││   │
-│  │  │                 │  │                    │  │                   ││   │
-│  │  │ • Save Config   │  │ • Collect & Parse  │  │ • Track Execution ││   │
-│  │  │ • Load Config   │  │ • Publish Metrics  │  │ • Store History   ││   │
-│  │  │ • Encrypt Creds │  │ • Dynamic Schedule │  │                   ││   │
-│  │  └────────┬────────┘  └──────┬────────┬───┘  └───────┬────────────┘│   │
-│  │           │                  │        │              │              │   │
-│  │  ┌────────▼─────────────────▼┐      │              │              │   │
-│  │  │     PostgreSQL DB         │      │              │              │   │
-│  │  │  • system_config          │      │              │              │   │
-│  │  │  • execution_history      │      │              │              │   │
-│  │  └───────────────────────────┘      │              │              │   │
-│  │                                      │              │              │   │
-│  │  ┌──────────────────────────────────▼──┐           │              │   │
-│  │  │    Striim Data Collection Pipeline   │           │              │   │
-│  │  │                                      │           │              │   │
-│  │  │  ┌──────────────────────────────┐  │           │              │   │
-│  │  │  │  StriimApiClient            │  │           │              │   │
-│  │  │  │  • /security/authenticate   │  │           │              │   │
-│  │  │  │  • /api/v2/tungsten (mon)  │  │           │              │   │
-│  │  │  │  • Token caching (55 min)   │  │           │              │   │
-│  │  │  └────────────┬─────────────────┘  │           │              │   │
-│  │  │               │                    │           │              │   │
-│  │  │  ┌────────────▼──────────────────┐ │           │              │   │
-│  │  │  │  MetricsCollectionService    │ │           │              │   │
-│  │  │  │  • Execute mon commands      │ │           │              │   │
-│  │  │  │  • Parse JSON response       │ │           │              │   │
-│  │  │  │  • Extract application data  │ │           │              │   │
-│  │  │  │  • Count by status           │ │           │              │   │
-│  │  │  │  • Add timestamps            │ │           │              │   │
-│  │  │  └────────────┬──────────────────┘ │           │              │   │
-│  │  │               │                    │           │              │   │
-│  │  └───────────────┼────────────────────┘           │              │   │
-│  │                  │                                │              │   │
-│  │  ┌──────────────▼────────────────────────┐       │              │   │
-│  │  │  Splunk Data Publishing Pipeline      │       │              │   │
-│  │  │                                       │       │              │   │
-│  │  │  ┌───────────────────────────────┐   │       │              │   │
-│  │  │  │   SplunkHecClient            │   │       │              │   │
-│  │  │  │   • HTTP Event Collector      │   │       │              │   │
-│  │  │  │   • Authorization Header      │   │       │              │   │
-│  │  │  │   • Request Channel UUID      │   │       │              │   │
-│  │  │  │   • Source & Sourcetype       │   │       │              │   │
-│  │  │  └──────────────┬────────────────┘   │       │              │   │
-│  │  │                 │                    │       │              │   │
-│  │  └─────────────────┼────────────────────┘       │              │   │
-│  │                    │                            │              │   │
-│  │  ┌────────────────▼──────────────────┐          │              │   │
-│  │  │  SchedulingConfig                 │          │              │   │
-│  │  │  • ThreadPoolTaskScheduler        │          │              │   │
-│  │  │  • Dynamic interval updates       │          │              │   │
-│  │  │  • Reschedule on config change    │          │              │   │
-│  │  └───────────────────────────────────┘          │              │   │
-│  │                                                  │              │   │
-│  └──────────────────────────────────────────────────┼──────────────┘   │
-│                                                     │                   │
-└─────────────────────────────────────────────────────┼───────────────────┘
-                                                      │
-                    ┌─────────────────────────────────┼─────────────────────────────┐
-                    │                                 │                             │
-                    ▼                                 ▼                             │
-        ┌──────────────────────┐         ┌──────────────────────┐                  │
-        │  Striim Server       │         │   Splunk HEC         │                  │
-        │  (Port 9080)         │         │   (Port 8088)        │                  │
-        │                      │         │                      │                  │
-        │ • /security/auth     │         │ • Token Validation   │                  │
-        │ • /api/v2/tungsten   │         │ • Event Indexing     │                  │
-        │ • Mon commands       │         │ • Metrics Storage    │                  │
-        │ • Application List   │         │                      │                  │
-        │ • Status, Rate, CPU  │         └──────────┬───────────┘                  │
-        └──────────────────────┘                    │                              │
-                                                    ▼                              │
-                                         ┌──────────────────────┐                  │
-                                         │  Splunk Index        │                  │
-                                         │  (striim_app_mon)    │                  │
-                                         │                      │                  │
-                                         │ • Structured Metrics │                  │
-                                         │ • Application Events │                  │
-                                         │ • Status Breakdown   │                  │
-                                         └──────────┬───────────┘                  │
-                                                    │                              │
-                                                    ▼                              │
-                                         ┌──────────────────────┐                  │
-                                         │ Splunk Dashboard     │                  │
-                                         │ (Port 8000)          │                  │
-                                         │                      │                  │
-                                         │ • Key Metrics Panel  │                  │
-                                         │ • Status Distribution│                  │
-                                         │ • Applications Table │                  │
-                                         │ • Timeline Chart     │                  │
-                                         │ • Live Percentages   │                  │
-                                         └──────────┬───────────┘                  │
-                                                    │                              │
-                                                    └──────────────────────────────┘
-                                                                 │
-                                                                 ▼
-                                                         View in Browser
-                                                         (User Analysis)
-```
+### Visual Architecture (SVG)
+
+![Architecture Diagram](docs/architecture-diagram.svg)
+
+*The diagram above shows the complete flow from user interaction through data collection, processing, publishing, and visualization.*
+
+### Architecture Layers Explained
+
+**Layer 1: User Interaction**
+- React frontend provides UI for configuration and monitoring
+- Users configure Striim and Splunk credentials
+- Manual trigger for immediate metrics collection
+- View execution history and collection status
+
+**Layer 2: Application Backend (Spring Boot)**
+- REST API layer handling all client requests
+- Service layer with business logic
+- Multiple specialized services for different functions
+- PostgreSQL database for persistent storage
+- Two main pipelines: Striim data collection and Splunk publishing
+
+**Layer 3: External Systems & Storage**
+- Striim Server: Source of metrics data via mon commands
+- Splunk HEC: Destination for metrics publishing
+- Splunk Index: Stores and organizes metrics
+- Splunk Dashboard: Visualizes collected data
 
 ## Data Flow Sequences
 
