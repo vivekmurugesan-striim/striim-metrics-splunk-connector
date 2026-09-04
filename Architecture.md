@@ -6,11 +6,69 @@ The Striim-Splunk Connector is a Spring Boot application that bridges Striim and
 
 ## Component Architecture Diagram
 
-### Visual Architecture (SVG)
+### Visual Flow Diagram
 
-![Architecture Diagram](docs/architecture-diagram.svg)
-
-*The diagram above shows the complete flow from user interaction through data collection, processing, publishing, and visualization.*
+```mermaid
+graph TD
+    User["👤 User<br/>(Browser)"]
+    Frontend["React Frontend<br/>Port: 3000<br/>Configuration & Triggers"]
+    
+    API["REST API Controllers<br/>/v1/config, /v1/collect<br/>/v1/history"]
+    
+    ConfigSvc["ConfigService<br/>Save/Load Config<br/>Encrypt Credentials"]
+    MetricsSvc["MetricsCollectionService<br/>Collect & Parse<br/>Execute Mon Commands"]
+    ScheduleSvc["SchedulingConfig<br/>Dynamic Scheduling<br/>ThreadPoolScheduler"]
+    
+    StriimClient["StriimApiClient<br/>/security/authenticate<br/>/api/v2/tungsten"]
+    SplunkClient["SplunkHecClient<br/>HTTP Event Collector<br/>Publish Metrics"]
+    
+    Database["PostgreSQL<br/>Port: 5432<br/>system_config<br/>execution_history"]
+    
+    Striim["Striim Server<br/>Port: 9080<br/>Authentication<br/>Mon Commands"]
+    
+    SplunkHEC["Splunk HEC<br/>Port: 8088<br/>Event Ingestion<br/>Sourcetype: _json"]
+    
+    SplunkIndex["Splunk Index<br/>striim_app_mon<br/>Indexed Events<br/>Stored Metrics"]
+    
+    Dashboard["Splunk Dashboard<br/>Port: 8000<br/>9 Interactive Panels<br/>Charts & Tables"]
+    
+    Browser["🌐 Browser View<br/>Real-time Metrics<br/>Status Distribution<br/>Application List"]
+    
+    User -->|Configures & Triggers| Frontend
+    Frontend -->|HTTP/JSON| API
+    API -->|Routes Requests| ConfigSvc
+    API -->|Routes Requests| MetricsSvc
+    API -->|Routes Requests| ScheduleSvc
+    
+    ConfigSvc -->|Read/Write| Database
+    MetricsSvc -->|Execute Commands| StriimClient
+    MetricsSvc -->|Publish Data| SplunkClient
+    ScheduleSvc -->|Query Config| Database
+    
+    StriimClient -->|Form-Encoded Auth| Striim
+    Striim -->|Mon Response JSON| StriimClient
+    
+    SplunkClient -->|Bearer Token| SplunkHEC
+    SplunkHEC -->|Index Events| SplunkIndex
+    
+    SplunkIndex -->|Query & Aggregate| Dashboard
+    Dashboard -->|Render HTML| Browser
+    
+    style User fill:#4CAF50,color:#fff
+    style Frontend fill:#E3F2FD,color:#1565c0
+    style API fill:#E3F2FD,color:#1565c0
+    style ConfigSvc fill:#F3E5F5,color:#6a1b9a
+    style MetricsSvc fill:#F3E5F5,color:#6a1b9a
+    style ScheduleSvc fill:#F3E5F5,color:#6a1b9a
+    style StriimClient fill:#F3E5F5,color:#6a1b9a
+    style SplunkClient fill:#F3E5F5,color:#6a1b9a
+    style Database fill:#F1F8E9,color:#558b2f
+    style Striim fill:#FFF3E0,color:#e65100
+    style SplunkHEC fill:#FFF3E0,color:#e65100
+    style SplunkIndex fill:#FFF3E0,color:#e65100
+    style Dashboard fill:#FFF3E0,color:#e65100
+    style Browser fill:#4CAF50,color:#fff
+```
 
 ### Architecture Layers Explained
 
@@ -21,17 +79,17 @@ The Striim-Splunk Connector is a Spring Boot application that bridges Striim and
 - View execution history and collection status
 
 **Layer 2: Application Backend (Spring Boot)**
-- REST API layer handling all client requests
-- Service layer with business logic
-- Multiple specialized services for different functions
-- PostgreSQL database for persistent storage
-- Two main pipelines: Striim data collection and Splunk publishing
+- **REST API Layer:** Controllers handle HTTP requests from frontend
+- **Service Layer:** Business logic for configuration, metrics collection, and scheduling
+- **Data Access:** PostgreSQL database for persistent storage of credentials and history
+- **Integration Clients:** API clients for Striim and Splunk communication
+- **Scheduling:** Dynamic task scheduler for automated collection at configurable intervals
 
 **Layer 3: External Systems & Storage**
-- Striim Server: Source of metrics data via mon commands
-- Splunk HEC: Destination for metrics publishing
-- Splunk Index: Stores and organizes metrics
-- Splunk Dashboard: Visualizes collected data
+- **Striim Server:** Source of metrics via form-encoded authentication and mon commands
+- **Splunk HEC:** Accepts JSON metrics via Bearer token authentication
+- **Splunk Index:** Stores all metrics events in `striim_app_mon` index
+- **Splunk Dashboard:** Visualizes 9 interactive panels with metrics and status information
 
 ## Data Flow Sequences
 
