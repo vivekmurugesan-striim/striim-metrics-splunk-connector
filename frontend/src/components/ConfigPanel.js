@@ -32,10 +32,15 @@ function ConfigPanel() {
         splunkToken: '',
       });
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: 'Failed to load configuration',
-      });
+      if (error.response?.status === 404) {
+        // No configuration exists yet - this is normal on first run
+        setSavedConfig(null);
+      } else {
+        setMessage({
+          type: 'error',
+          text: 'Failed to load configuration',
+        });
+      }
     }
   };
 
