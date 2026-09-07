@@ -27,7 +27,7 @@ public class ConfigService {
             config.setSplunkHecUrl(request.getSplunkHecUrl());
             config.setSplunkTokenEnc(EncryptionUtil.encrypt(request.getSplunkToken()));
             config.setSplunkIndex(request.getSplunkIndex());
-            config.setIntervalSeconds(request.getCollectionIntervalSeconds() != null ?
+            config.setCollectionIntervalSeconds(request.getCollectionIntervalSeconds() != null ?
                     request.getCollectionIntervalSeconds() : 60);
 
             SystemConfig saved = configRepository.save(config);
