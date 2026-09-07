@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS system_config (
     splunk_hec_url VARCHAR(255) NOT NULL,
     splunk_token_enc TEXT NOT NULL,
     splunk_index VARCHAR(100) NOT NULL,
-    interval_seconds INTEGER DEFAULT 60,
+    collection_interval_seconds INTEGER DEFAULT 60,
     updated_at TIMESTAMP NOT NULL
 );
 

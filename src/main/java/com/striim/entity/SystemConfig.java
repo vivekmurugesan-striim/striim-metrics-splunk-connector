@@ -35,8 +35,8 @@ public class SystemConfig {
     @Column(length = 100, nullable = false)
     private String splunkIndex;
 
-    @Column(name = "interval_seconds")
-    private Integer intervalSeconds = 60;
+    @Column(name = "collection_interval_seconds")
+    private Integer collectionIntervalSeconds = 60;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
